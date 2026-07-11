@@ -1,1 +1,87 @@
+======================================================================================================================================================
+Phase 1 - Week 1 - Day 1
+Topic 1: Algorithm Analysis
+
+            This topic may sound basic, but Google interviewers use it to judge your engineering maturity.  
+            Many candidates can write code.
+            Few candidates can explain why one solution is better than another.
+            That's exactly what algorithm analysis teaches.
+====================================================================================================================================================================================
+What is an Algorithm?
+
+                    An algorithm is simply a sequence of steps that solves a problem.
+
+        Example:
+        
+                    Finding a name inside a phonebook.
+                    
+                    Finding a file on disk.
+                    
+                    Searching Google.
+                    
+                    Routing a packet.
+                    
+                    Calculating GPS directions.
+                    
+                    Everything is an algorithm.
+
+The real question is:
+
+                      How efficient is it?
+
+That is what complexity analysis answers.
+
+====================================================================================================================================================================================
+Why Complexity Matters:
+
+            Imagine Google receives:     1 billion requests/day
+                            
+            Suppose one algorithm takes:  100 ms
+                            
+            Another takes:      10 ms
+                            
+            Difference?:     90 ms
+                            
+            Seems small.!!!!!
+                            
+            Now multiply:      90 ms × 1,000,000,000
+                            
+                That's 90 million seconds of extra CPU time.
+                            
+At Google's scale, an algorithm that's only slightly more efficient can save enormous compute resources.
+
+That's why interviewers care about complexity—     they want engineers who can reason about efficiency at scale.
+
+====================================================================================================================================================================================
+Time Complexity
+
+              Time complexity measures:     How does the running time grow as the input size grows?
+
+                Notice:  We don't measure
+                
+                          seconds
+                          milliseconds
+                          CPU speed
+                
+                Instead we measure
+                
+                            Growth
+                
+                Example
+                
+                          Suppose
+                          
+                          n = number of elements
+                          
+                          Algorithm A
+                
+                
+                
+                
+                
+                
+
+
+
+
 
