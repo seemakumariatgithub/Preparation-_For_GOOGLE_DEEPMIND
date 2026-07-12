@@ -396,6 +396,21 @@ k = log₃ n
 
 The base of the logarithm is ignored in Big-O notation because logarithms with different constant bases differ only by a constant factor.
 
+##########################################################################################################################################################
+Interview Improvement
+            As an L5 candidate, don't answer like this:
+
+                                    TC is O(n)
+
+Instead, answer like this:
+
+            "The loop iterates once for every element in the input array, 
+                        performing constant work during each iteration.
+                        Therefore the time complexity is O(n). T
+                        he algorithm only uses a single accumulator variable, so the additional space complexity is O(1)."
+
+Notice that this explains the reasoning, not just the result.
+
 
 
 
