@@ -75,11 +75,329 @@ Time Complexity
                           
                           Algorithm A
                 
+                             for (int i = 0; i < n; i++) {
+                                        System.out.println(i);
+                                    }
                 
-                
-                
-                
-                
+                How many times does the loop execute?  :     n
+                                    
+                                    Therefore   :     Time = n
+                                    
+                                    We write    :    O(n)
+
+
+            Example 2
+            
+                        Nested loop
+                        
+                                    for (int i = 0; i < n; i++) {
+                                    
+                                        for (int j = 0; j < n; j++) {
+                                    
+                                        }
+                                    
+                                    }
+                                    
+                        Outer loop  :n
+                                    
+                        Inner loop  : n
+                                    
+                         Total:  n*n =  O(n²)
+
+            Example 3
+
+                        Binary Search
+                        
+                                    Every iteration:   Half the search space.
+                                    
+                                    Example
+                                    1024 elements                                    
+                                    ↓                                    
+                                    512                                    
+                                    ↓                                    
+                                    256                                    
+                                    ↓                                    
+                                    128                                    
+                                    ↓                                    
+                                    64                                    
+                                    ↓                                    
+                                    32                                    
+                                    ↓                                    
+                                    16                                    
+                                    ↓                                    
+                                    8                                    
+                                    ↓                                    
+                                    4                                    
+                                    ↓                                    
+                                    z                                    
+                                    ↓                                    
+                                    1
+
+                        How many steps? :      log₂ n  = O(log n)
+
+            This is why binary search is so efficient.
+
+============================================================================================================================================
+
+Common Complexities
+
+| Complexity | Example                    | Scales Well?              |
+| ---------- | -------------------------- | ------------------------- |
+| O(1)       | Hash lookup (average case) | ✅ Excellent               |
+| O(log n)   | Binary Search              | ✅ Excellent               |
+| O(n)       | Single traversal           | ✅ Good                    |
+| O(n log n) | Merge Sort                 | ✅ Good                    |
+| O(n²)      | Nested loops               | ⚠️ Acceptable for small n |
+| O(2ⁿ)      | Naive recursion            | ❌ Poor                    |
+| O(n!)      | Permutations               | ❌ Very poor               |
+
+
+===========================================================================================================================================================================
+
+Big-O :   This is what most people know.
+
+                                    But Google interviewers sometimes go further.
+            
+             Big-O represents   :       The upper bound on growth.
+            
+            It tells us         :       The algorithm will not grow faster than this asymptotically.
+
+
+Big-Theta (Θ)   : Big-Theta is a tight bound.
+
+                      It means  : Upper Bound                        
+                                    AND                        
+                                    Lower Bound
+                                    
+                    Example: for(int i=0;i<n;i++)
+                        
+                     Always executes : n
+                                       Not more.                        
+                                       Not less.
+
+                        Therefore : Θ(n)
+
+Big-Omega (Ω)   : Big-Omega represents the lower bound.
+
+                        Meaning: The algorithm will take at least this much work.
+                        
+                        Example: Searching in an unsorted array.
+                        
+                        Best case: Target is first element :     Ω(1)
+                        Worst case:   Last element.        :   O(n)                        
+                        Average : Θ(n)
+
+This distinction becomes useful when discussing best, average, and worst-case behavior.
+========================================================================================================================================
+
+Interview Question  : Google interviewer:     Why is Binary Search O(log n)?
+                        
+Bad answer:   Because everyone says so.
+                        
+Good answer:  Every iteration eliminates half of the remaining search space.
+                        
+            After k iterations:                        
+                        n / 2^k = 1
+                        
+            Solving for k:                        
+                        2^k = n                        
+                        k = log₂ n                        
+            Therefore,                        
+                        Time Complexity = O(log n) 
+
+This mathematical reasoning is what interviewers appreciate.
+======================================================================================================================================================================================
+
+Space Complexity :Space complexity measures:
+
+                        How much extra memory does the algorithm need as input grows?
+
+            Example
+                        int sum = 0;
+                        
+                        for(int num : nums){
+                        
+                            sum += num;
+                        }
+            
+            Extra variables?   -> Only   sum
+            Memory does not grow with n .
+            Therefore  :      O(1)
+
+            Example            
+                        HashMap<Integer,Integer> map = new HashMap<>();
+                        
+            If we insert every element,                        
+                        n entries
+                        
+            Memory grows with input.
+                        
+            Therefore    O(n)
+
+======================================================================================================================================================================================
+Amortized Analysis
+
+            This is one of the favorite follow-up topics for experienced Java engineers.
+
+            Question:      Why is            
+                                    ArrayList.add()
+            
+                        considered : O(1)            
+                        when resizing copies the entire array?
+            
+            Good observation!
+                       
+            Imagine
+                        Capacity
+                        
+                        4
+                        1
+                        2
+                        3
+                        4
+                        
+            Now insert
+                        
+                        5
+                        
+            Java allocates a larger array (typically ~1.5× bigger in modern JDKs) and copies the existing elements before adding the new one.
+                        
+            That single insertion is O(n) because of the copy.
+                        
+            But it doesn't happen on every insertion.
+                        
+            Most calls simply place the new element in the next available slot:
+                        
+                        O(1)
+                        
+                        O(1)
+                        
+                        O(1)
+                        
+                        O(n)
+                        
+                        O(1)
+                        
+                        O(1)
+                        
+                        ...
+                        
+            If you spread the occasional expensive resize across many cheap insertions, the average cost per insertion remains O(1). 
+            That's what amortized O(1) means.
+
+Interview Question
+
+                        Why isn't
+                        
+                                    ArrayList.add()                        
+                                    always                        
+                                    O(n)
+                        
+                        Because resizing is infrequent.                        
+                                    Most insertions don't require copying.                        
+                                    The occasional expensive operation is distributed over many inexpensive operations.
+                        
+                        Hence:                        
+                                    Amortized O(1)
+
+
+
+========================================================================================================================================================================================
+Complexity Cheat Sheet
+
+                        | Operation                     | Time     | Space |
+                        | ----------------------------- | -------- | ----- |
+                        | Array Access                  | O(1)     | O(1)  |
+                        | Array Traversal               | O(n)     | O(1)  |
+                        | Binary Search (sorted array)  | O(log n) | O(1)  |
+                        | HashMap Lookup (average)      | O(1)     | O(n)  |
+                        | HashMap Lookup (worst case)   | O(n)     | O(n)  |
+                        | ArrayList `add()` (amortized) | O(1)     | O(1)  |
+                        | ArrayList Insert at Beginning | O(n)     | O(1)  |
+
+
+
+Google Interview Tip of the Day
+
+            When asked for the complexity of a solution, don't stop at "O(n)".
+
+            A strong L5 answer sounds like this:
+
+                             "The algorithm performs a single pass over the input, 
+                                    so the time complexity is O(n). It stores each element in a HashSet, 
+                                    causing the additional memory usage to grow linearly with the input size, 
+                                    so the space complexity is O(n). T
+                                    he lookup and insertion operations are O(1) 
+                                    on average because HashSet is backed by a hash table."
+
+                        Notice how that answer includes reasoning, not just the final result.
+
+========================================================================================================================================================================================
+Q3:
+            for (int i = 1; i < n; i = i * 2) {
+                System.out.println(i);
+            }
+Your Answer:    ❌ TC = O(n)
+            Correct Space = O(1)
+
+Correct Answer:   TC = O(log n)
+
+Why?
+            This is one of Google's favorite questions.
+
+Look carefully.
+
+i = 1
+2
+4
+8
+16
+32
+64
+128
+Every iteration:i = i × 2
+
+We are doubling.  Suppose   n = 1024
+
+Iterations
+1
+2
+4
+8
+16
+32
+64
+128
+256
+512
+1024
+
+Only 10 iterations.  Not 1024.
+
+Now let's derive it mathematically.
+                        After k iterations
+                                    2^k = n
+
+                        Taking log on both sides
+                                    k = log₂ n
+
+            Hence  O(log n)
+Google Follow-up     What if
+
+                        i = i * 3;
+
+            Answer?
+                        Still
+                        O(log n)
+because
+
+3^k = n
+k = log₃ n
+
+The base of the logarithm is ignored in Big-O notation because logarithms with different constant bases differ only by a constant factor.
+
+
+
 
 
 
