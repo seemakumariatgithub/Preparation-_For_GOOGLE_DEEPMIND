@@ -1,1 +1,233 @@
 
+Google DeepMind L5 Backend Interview Preparation
+Phase 1 → Week 1 → Day 2    :    Arrays & HashMap Pattern
+====================================================================================================================================================================================
+Today's Goal
+
+  By the end of today's session, you should be able to:
+
+        Understand why arrays are one of the fastest data structures.
+        Explain why HashMap is used (not just how).
+        Recognize the HashMap interview pattern.
+        Solve Two Sum like an L5 candidate.
+        Understand HashMap internals, because Google often asks follow-up questions.
+====================================================================================================================================================================================
+Part 1: Why Arrays Are So Fast
+
+    Let's start with a question.
+    Interview Question
+
+              Why is accessing    arr[500]    considered O(1)?
+
+  Most candidates answer:
+              "Because arrays have direct indexing."
+          
+          That answer is incomplete.  A Google interviewer may ask:
+                              "What does direct indexing actually mean?"
+          
+          How Arrays Are Stored in Memory
+          
+          Imagine:
+          
+              int[] arr = {10,20,30,40,50};
+          
+                    In memory, the elements are stored contiguously.
+                    
+                    Base Address = 1000
+                    
+                    Address      Value
+                    
+                    1000          10
+                    1004          20
+                    1008          30
+                    1012          40
+                    1016          50
+                    
+        Why every 4 bytes?
+                    
+          Because     int  occupies 4 bytes.
+
+        How Java Calculates arr[i]
+
+            The JVM computes the address using:
+
+                    address = base + (index × sizeOfElement)
+
+              For example:
+
+                          arr[3]
+                          
+                          Calculation:
+                          
+                          1000 + (3 × 4)
+                          
+                          = 1012
+
+              The JVM jumps directly to address 1012.
+              
+              No searching.
+              
+              No traversal.
+
+        Just arithmetic.
+        
+        Hence:        O(1)
+
+
+====================================================================================================================================================================================
+Interview Follow-up
+                
+                  Why is
+                  
+                          LinkedList.get(500)
+                  
+                  not O(1)?
+                  
+                  Because nodes are not contiguous.
+                  
+                  Memory looks like:
+  
+                                Node
+                                
+                                ↓
+                              
+                              Node
+                              
+                              ↓
+                              
+                              Node
+                              
+                              ↓
+                              
+                              Node
+
+          To reach node 500,
+
+              Java must visit  499 nodes
+
+        Therefore   :O(n)
+
+
+
+====================================================================================================================================================================================
+CPU Cache Locality (L5 Topic)
+
+          This is one topic that separates senior engineers from average candidates.
+          
+          Suppose:
+          
+                  int[] arr = new int[100000];
+          
+          The CPU loads memory in cache lines (typically 64 bytes on modern processors).
+          
+          Since array elements are stored together, when one cache line is loaded, several adjacent integers become available immediately.
+          
+          When iterating through the array sequentially, the CPU often already has the next values in cache.
+          
+          This is called:
+          
+                        Cache Locality
+
+It is one reason arrays perform so well in practice.
+====================================================================================================================================================================================
+
+Interview Question
+
+                Why is ArrayList iteration faster than LinkedList iteration?
+
+                            Many people answer:
+                            
+                            "Because arrays are faster."
+
+                    That's not enough.
+                    
+                    A stronger answer is:
+                    
+                    "An ArrayList stores elements in contiguous memory, which provides good CPU cache locality.
+                      A LinkedList stores nodes at arbitrary memory locations, causing pointer chasing and frequent cache misses during traversal."
+                    
+    That demonstrates a deeper understanding.
+
+====================================================================================================================================================================================
+Part 2: The HashMap Pattern
+
+                    Now let's discuss the most frequently used interview pattern.
+                    
+                    Imagine this problem:
+                    
+                              nums = [2,7,11,15]
+                    
+                              target = 9
+                    
+                    Most candidates think:  For every number, search the whole array.
+                                                                  
+                  his leads to:     O(n²)
+
+
+
+
+      Google Wants Better Thinking
+      
+                    Instead of asking:     Where is 7?
+      
+                    Ask:  What number do I need?
+      
+      Suppose:    Current Number: 2
+                  Target :     9
+                  Needed :     7
+                  That's called the complement.
+                        
+                        complement = target - current
+                        
+                 This single observation transforms the solution.
+
+
+
+Why HashMap?
+
+                Let's compare.
+                
+                Without HashMap:   Need 7
+                
+                ↓
+                
+                Search entire array   :    O(n)
+                
+                With HashMap:      Need 7
+                
+                ↓
+                
+                Hash lookup:        Average O(1)
+
+That changes the overall solution from quadratic to linear.
+
+====================================================================================================================================================================================
+The HashMap Pattern
+
+            This pattern appears repeatedly in interview problems.
+            
+            The steps are:
+            
+                     - Process each element.
+                     - Compute the value you need.
+                     - Check whether you've already seen it.
+                     - If yes, you've found the answer.
+                     - Otherwise, store the current element.
+                      
+            Once you recognize this pattern, many problems become much easier.
+
+
+
+
+
+====================================================================================================================================================================================
+
+====================================================================================================================================================================================
+
+
+
+
+
+
+
+
