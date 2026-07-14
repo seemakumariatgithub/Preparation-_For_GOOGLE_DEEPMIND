@@ -1,1 +1,223 @@
+Google interviewers don't expect you to have solved every problem on LeetCode. 
+They expect you to recognize the underlying pattern and derive the solution.
+=====================================================================================================================================================================
+Sliding Window Pattern
+
+                    Interview Question
+                    
+                    Imagine I ask you this:      Find the maximum sum of any subarray of size 3.
+                    
+                    Example:     nums = [2,1,5,1,3,2]
+                                  k = 3
+                    
+                    Output:      9
+                    
+                    because
+                              2 + 1 + 5 = 8                              
+                              1 + 5 + 1 = 7                              
+                              5 + 1 + 3 = 9  ← Maximum                              
+                              1 + 3 + 2 = 6
+First Interview Question , Suppose you have never seen this problem.
+
+How would you solve it?    Most candidates say:
+
+              Take every group of size 3
+              
+              Calculate its sum
+              
+              Remember the maximum
+
+Let's analyze it.
+    
+
+=====================================================================================================================================================================
+            Brute Force
+                        int max = Integer.MIN_VALUE;                        
+                        for (int i = 0; i <= nums.length - k; i++) {                        
+                            int sum = 0;                        
+                            for (int j = i; j < i + k; j++) {                        
+                                sum += nums[j];
+                            }                        
+                            max = Math.max(max, sum);
+                        }
+
+            Complexity Analysis            
+            Outer loop   :n            
+            Inner loop:  k
+            Total    : O(n × k)
+
+              Interview Question              
+              If:  k = n
+               What happens?              
+              Then:  O(n × n) = O(n²)
+              
+              Very slow for large arrays.
+
+=====================================================================================================================================================================
+
+newSum =   oldSum   -    leavingElement   +   enteringElement
+
+This is the heart of the Sliding Window pattern.
+
+
+
+
+        The Big Idea
+        
+                    When the window moves one step:
+                    
+                    Old Window    [2 1 5]
+                          
+                          ↓
+                          
+                    New Window     [1 5 1]
+                    
+                    Only    Remove 2   and    Add 1
+=====================================================================================================================================================================
+Sliding Window Algorithm
+
+Step 1    :    Calculate the first window   :     2 + 1 + 5 = 8
+Step 2    :    Slide the window.
+                      8                      
+                      -                      
+                      2                      
+                      +                      
+                      1                      
+                      =                      
+                      7
+
+
+              Slide again.
+                    7                    
+                    -                    
+                    1                    
+                    +                    
+                    3                    
+                    =                    
+                    9
+            Slide again.
+
+                  9                  
+                  -                  
+                  5                  
+                  +                  
+                  2                  
+                  =                  
+                  6
+
+                Done.
+
+Notice that after the first window, each move is constant work.
+
+Complexity  :
+
+        Initial window: O(k)
+        
+        Remaining windows: O(n-k)
+        
+        Total: O(n)
+        
+        Space: O(1)
+
+
+=====================================================================================================================================================================
+Java Implementation
+
+      public int maxSumSubArray(int[] nums, int k) {
+
+                        int windowSum = 0;
+                    
+                        // Build first window
+                        for (int i = 0; i < k; i++) {
+                            windowSum += nums[i];
+                        }
+                    
+                        int maxSum = windowSum;
+                    
+                        // Slide the window
+                        for (int right = k; right < nums.length; right++) {
+                    
+                            windowSum += nums[right];      // Add incoming element
+                    
+                            windowSum -= nums[right - k];  // Remove outgoing element
+                    
+                            maxSum = Math.max(maxSum, windowSum);
+                        }
+                    
+                        return maxSum;
+                    }
+====================================================================================================================================================================================
+    Why Does This Work?
+    
+    
+    Why is this algorithm O(n)?
+                  Many candidates say:     "Because Sliding Window is O(n)."
+    
+            ❌ That's not a reason.
+    
+    The correct explanation is:
+    
+            "Each element enters the window exactly once and leaves the window exactly once.
+              Therefore, every element is processed a constant number of times, 
+              making the total work proportional to n, which gives a time complexity of O(n)."
+    
+    This is the explanation an L5 interviewer wants.
+
+====================================================================================================================================================================================
+          When Can We Use Sliding Window?
+          
+                    This is far more important than memorizing code.
+          
+          Sliding Window works when:
+          
+                  ✅ We are dealing with a contiguous subarray or substring.
+          
+          Examples:          
+                    Maximum sum of size k
+                    Longest substring
+                    Minimum window
+                    Count subarrays
+                    Average of subarrays
+          
+          It usually doesn't apply when:          
+                    Elements can be picked from anywhere.
+                    Order doesn't matter.
+                    The problem involves arbitrary combinations or subsets.
+                    
+          For example, Two Sum is not a Sliding Window problem.
+
+====================================================================================================================================================================================
+
+
+
+
+
+
+====================================================================================================================================================================================
+
+
+
+
+
+
+
+====================================================================================================================================================================================
+
+
+
+
+
+
+====================================================================================================================================================================================
+
+
+
+
+
+
+====================================================================================================================================================================================
+
+
+
+
 
