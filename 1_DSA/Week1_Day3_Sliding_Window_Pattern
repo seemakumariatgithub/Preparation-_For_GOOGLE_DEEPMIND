@@ -187,7 +187,29 @@ Java Implementation
           For example, Two Sum is not a Sliding Window problem.
 
 ====================================================================================================================================================================================
+Fixed vs Variable Sliding Window
 
+      There are two main types.
+      
+            1. Fixed-size window  : The window size never changes.
+                
+                Examples:                
+                      Maximum Average Subarray I
+                      Maximum Sum of Size K
+                
+                The algorithm simply slides one position at a time.
+
+          2. Variable-size window   :     The window expands and shrinks depending on a condition.
+
+                Example:                
+                    Longest Substring Without Repeating Characters
+
+          You might:          
+                  Expand the window while it's valid.
+                  Shrink it when it becomes invalid.
+                  Expand again.
+
+This pattern is slightly more advanced and very common in Google interviews.
 
 
 
@@ -200,7 +222,7 @@ Java Implementation
 
 
 
-
+   
 ====================================================================================================================================================================================
 
 
