@@ -189,7 +189,39 @@ Notice the progression:
 
 ===============================================================================================================================================================================
 
+One Suggestion That Will Make a Huge Difference
 
+From tomorrow onward, whenever I ask a coding question, don't write code first.
+
+I want you to answer in this exact format:
+
+Interviewer: "Solve Two Sum."
+
+You:
+
+Clarifying Questions
+            Is there exactly one solution?
+            Can numbers be negative?
+            Should I return indices or values?
+Brute-force Approach
+            Explain it.
+State complexity.
+            Observation
+            "We're repeatedly searching for previously seen values."
+Optimal Approach
+Explain the algorithm.
+Justify the data structure.
+Complexity
+            Time.
+            Space.
+Edge Cases
+            Duplicates.
+            Empty input.
+            Single element.
+            All elements equal.
+Only then write the code.
+
+If you consistently follow this structure, by the time we reach mock interviews, you'll already be communicating like an experienced L5 candidate rather than simply solving coding problems.
 
 
 
