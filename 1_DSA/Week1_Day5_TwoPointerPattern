@@ -1,1 +1,165 @@
+Today's Goal
 
+By the end of this session, you'll be able to:
+
+        Recognize when the Two Pointer pattern applies.
+        Distinguish it from Sliding Window.
+        Solve common Two Pointer problems.
+        Explain why it works, not just implement it.
+
+===========================================================================================================================================================================================
+First Interview Question
+
+              Suppose I give you:
+              
+                      nums = [1,2,4,7,11,15]              
+                      target = 15              
+                      Return whether a pair exists whose sum equals the target.
+              
+              Before coding...
+              
+              Follow the framework you've been practicing.
+
+              1. Clarifying Questions
+              
+              Ask questions such as:
+              
+                            Is the array sorted?
+                            Can numbers be negative?
+                            Can duplicates exist?
+                            Should I return indices, values, or just a boolean?
+                            Is there always exactly one solution?
+              
+              These questions influence the algorithm.
+
+===========================================================================================================================================================================================
+Interview Follow-up Questions
+
+              Think about these before our next discussion.
+
+                Q1  :   Why can't the Two Pointer technique be applied directly to an unsorted array?
+                
+                Q2  :   Suppose the interviewer allows you to sort the array first.                
+                        Would you now use Two Pointers?                
+                        What would be the new time complexity?
+                
+                Q3  :   If the original indices must be returned, can you still sort the array?
+
+                        Why or why not?
+
+                Q4  :   Suppose the array contains duplicate values.                
+                       Does the Two Pointer algorithm still work?
+                
+                      Example:     [1,2,2,3,4,5]
+                      
+                      Target:    4
+
+                      Explain your reasoning.
+
+
+
+                    Q1. Why can't Two Pointers be applied directly to an unsorted array?
+                    L5 Answer
+                    
+                            "The Two Pointer technique relies on the array being ordered. 
+                            In a sorted array, moving the left pointer to the right increases the value,
+                            while moving the right pointer to the left decreases the value. 
+                            This predictable behavior allows us to eliminate part of the search space. 
+                            In an unsorted array, moving either pointer has no predictable effect 
+                            on the sum, so we can't determine which direction to move."
+
+                      ⭐⭐⭐⭐⭐
+
+                  Q2. If we sort first, would you use Two Pointers?
+
+  
+                            Sorting an array generally takes:  O(n log n)                            
+                            Then Two Pointers take:  O(n)
+                            
+                            Total:  O(n log n + n)
+
+                            Simplified:
+                            
+                            O(n log n)
+                  Interview Answer
+                  
+                                "Yes. If modifying the input is allowed, I would first sort the array in O(n log n) time and 
+                                  then apply the Two Pointer technique in O(n). The overall time complexity becomes O(n log n), 
+                                with the extra space depending on the sorting algorithm used."
+                  
+      
+
+                  Q3. If original indices must be returned, can you still sort?
+                  Your Answer  : No.
+                  
+                  Verdict : ✅ Correct.
+                  
+                  Excellent.  However...
+                  
+                  Google interviewer follow-up: "Are you sure?"
+
+                Actually...   You can sort if you store the original indices.
+                
+                Example:
+
+                      Instead of sorting:  [11,2,7,15]
+                      
+                      you sort pairs:   (value,index)
+
+                          (2,1)                          
+                          (7,2)                          
+                          (11,0)                          
+                          (15,3)
+                          
+                      Now Two Pointers still work. When you find the answer, you return the stored indices.
+                          
+               SO ANSWER IS :      
+                   "If I sort the original array directly, I'll lose the mapping between values and their original indices. 
+                    However, if sorting is permitted, I can instead sort value-index pairs. 
+                    That preserves the original indices while still allowing the Two Pointer technique."
+
+            This is a very common senior-level follow-up.
+            
+            Q4. Do duplicates break the algorithm?
+          L5 Answer
+
+                "Yes. The algorithm still works because it relies on the sorted order, not on the uniqueness of elements. 
+                  Duplicate values don't affect the rule that moving the left pointer increases or maintains the current value, 
+                  while moving the right pointer decreases or maintains it. Therefore, the correctness of the algorithm is preserved."
+
+
+===========================================================================================================================================================================================
+
+Coding Homework
+
+Implement these in Java 21:
+
+        Two Sum II (Sorted Array)
+        Remove Duplicates from Sorted Array
+        Squares of a Sorted Array
+        Move Zeroes
+
+For each problem, follow your interview template:
+
+            Clarifying questions
+            Brute-force solution
+            Observation
+            Optimal solution
+            Data structure choice
+            Complexity
+            Edge cases
+            Code
+
+
+
+===========================================================================================================================================================================================
+
+
+
+
+
+===========================================================================================================================================================================================
+
+
+
+======================================================================================================================================================================================================================================================================================================================================================================================
