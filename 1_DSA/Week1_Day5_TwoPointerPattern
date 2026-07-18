@@ -128,6 +128,112 @@ Interview Follow-up Questions
                   while moving the right pointer decreases or maintains it. Therefore, the correctness of the algorithm is preserved."
 
 
+
+        INTERVIEW TWIST    : Now let me challenge you with something Google interviewers love.
+        
+        Suppose I say:       
+                         nums = [1,2,2,2,3,4,5]
+                                        
+                          target = 4
+
+                Now I ask:    Return ALL unique pairs.
+                
+                Would your current Two Pointer algorithm work?
+
+
+
+Step 1: Clarifying Questions
+
+                A strong candidate would first ask:
+                
+                Is the array already sorted?
+                Should I return values or indices?
+                By unique, do you mean unique values or unique indices?
+
+Usually, interviewers mean unique values, so the answer should contain only:
+
+Step 2: Can the Existing Two Pointer Algorithm Work?
+
+                The answer is:  Yes, but it needs one modification.
+                
+                The basic algorithm still works because the array is sorted.
+                
+                The only additional step is:  After finding a valid pair, skip all duplicate values before continuing.
+
+Correct Algorithm
+
+When
+
+sum == target
+Save the pair.
+Move the left pointer past all duplicate values.
+Move the right pointer past all duplicate values.
+Continue searching.
+
+                public List<List<Integer>> findUniquePairs(int[] nums, int target) {
+                
+                    List<List<Integer>> result = new ArrayList<>();
+                
+                    int left = 0;
+                    int right = nums.length - 1;
+                
+                    while (left < right) {
+                
+                        int sum = nums[left] + nums[right];
+                
+                        if (sum == target) {
+                
+                            result.add(List.of(nums[left], nums[right]));
+                
+                            int leftValue = nums[left];
+                            int rightValue = nums[right];
+                
+                            while (left < right && nums[left] == leftValue) {
+                                left++;
+                            }
+                
+                            while (left < right && nums[right] == rightValue) {
+                                right--;
+                            }
+                
+                        } else if (sum < target) {
+                
+                            left++;
+                
+                        } else {
+                
+                            right--;
+                
+                        }
+                    }
+                
+                    return result;
+                }
+
+
+
+Complexity
+
+                        Time Complexity
+
+                Each pointer moves only forward (or backward) through the array.
+                Even when skipping duplicates, each element is visited at most once.
+
+                Time: O(n)
+                
+                Space:
+                
+                Ignoring the output list: O(1)
+                Including the returned pairs: O(k), where k is the number of unique pairs.
+
+L5 Interview Answer
+
+                If I asked this in an interview, this is the kind of explanation I'd expect:
+                
+                "The standard Two Pointer approach still works because the array is sorted. However, if the requirement is to 
+                return only unique pairs, I need to avoid reporting the same value pair multiple times. After finding a valid pair, 
+                I would record it and then advance both pointers past any duplicate values before continuing the search.
+                This ensures each unique pair is reported exactly once while maintaining an O(n) time complexity."
 ===========================================================================================================================================================================================
 
 Coding Homework
