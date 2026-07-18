@@ -1,0 +1,154 @@
+Phase 3 – System Design (Weeks 15–20)
+            Week 15 Topics
+                        High-Level Design (HLD) Basics
+                        Scalability
+                        CAP Theorem
+                        Consistent Hashing
+                        Load Balancer
+                        Reverse Proxy
+
+Today's Topic 1 — High-Level Design (HLD) Basics
+
+      This is probably the most important interview round at Google for L5.      
+      Many engineers fail because they jump directly into technologies.      
+      Google wants to evaluate how you think, not how many AWS services you know.
+      
+      What is High-Level Design?
+                      High-Level Design describes the entire architecture of a system.
+
+Instead of talking about code...
+
+You talk about
+
+                components
+                services
+                databases
+                communication
+                scaling
+                reliability
+
+Think of it as designing an entire city instead of designing one house.
+
+Imagine Google asks
+
+Design YouTube.                  
+                  They don't expect code.                  
+                    They expect architecture.
+
+For example:
+
+                                      Users
+                                      
+                                           │
+                                           ▼
+                                      
+                                      Load Balancer
+                                      
+                                           │
+                                           ▼
+                                      
+                                      API Gateway
+                                      
+                                           │
+                                           ▼
+                                      
+                                      Video Service
+                                      User Service
+                                      Recommendation Service
+                                      Comment Service
+                                      
+                                           │
+                                           ▼
+                                      
+                                      Databases
+                                      Cache
+                                      CDN
+                                      Object Storage
+
+    Notice:    
+            No Java.            
+            No Spring Boot.            
+            No SQL queries.            
+            Only architecture.
+
+What Google evaluates
+
+          During HLD they observe whether you think like a distributed systems engineer.
+
+They score:
+
+1. Requirement Gathering ⭐
+              Many candidates immediately start drawing diagrams.
+              
+              Google expects you to ask questions first.              
+              Example:
+              
+              Design Instagram.              
+              Before drawing anything...
+
+    Ask:              
+              How many users?              
+              Daily Active Users?              
+              Photos only?              
+              Videos?              
+              Stories?              
+              Search?              
+              Messaging?              
+              Expected QPS?              
+              Latency requirements?              
+              Availability?              
+              Consistency?              
+              Storage size?
+              
+              This is the biggest difference between average and strong candidates.
+
+2. APIs
+        Example:                  
+                  POST /upload                  
+                  GET /feed                  
+                  GET /video/{id}                  
+                  POST /comment
+        
+        Interviewers want to know        
+        How clients communicate with your system.
+
+3. Components
+              Break the system into services.              
+              Example:
+              
+                      Authentication Service                      
+                      Video Service                      
+                      Notification Service                      
+                      Search Service                      
+                      Recommendation Service
+4. Database
+              Choose wisely.              
+              SQL?              
+              NoSQL?              
+              Object Storage?              
+              Graph DB?              
+              Cache?
+
+5. Scalability                
+                Can your system handle                
+                100 users?                
+                1000?                
+                1 million?                
+                100 million?                
+                1 billion?
+
+6. Reliability
+            What happens if a server dies?            
+            Does everything stop?            
+            Or continue working?
+
+7. Bottlenecks
+        
+        Every design has bottlenecks.
+        
+        Google wants you to identify them before they ask.
+
+
+
+
+
