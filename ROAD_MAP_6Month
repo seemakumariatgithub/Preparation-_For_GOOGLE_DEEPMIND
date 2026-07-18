@@ -1,0 +1,302 @@
+Google DeepMind L5 Interview Preparation Roadmap (The Same Plan)
+Phase 1 – Master Coding Foundations (Weeks 1–8)
+
+        Objective: Build strong DSA fundamentals and pattern recognition.
+
+            Week 1 – Arrays & Hashing ✅ (Current Week)
+            Complexity Analysis (Big-O)
+            Arrays
+            HashMap
+            HashSet
+            Sliding Window (Fixed)
+            Two Pointers
+            Binary Search
+            Mock interview & revision
+            
+            Problems
+          
+                    Two Sum
+                    Contains Duplicate
+                    Valid Anagram
+                    Maximum Average Subarray
+                    Remove Duplicates
+                    Move Zeroes
+                    Search Insert Position
+                    First/Last Occurrence
+======================================================================================================================================================
+    Week 2 – Binary Search & Sorting
+            Binary Search on Answer
+            Rotated Sorted Array
+            Lower Bound / Upper Bound
+            Search in 2D Matrix
+            Koko Eating Bananas
+            Capacity to Ship Packages
+            Merge Intervals
+            Meeting Rooms
+            Custom Sorting
+            Comparator
+================================================================================================================================================================
+        Week 3 – Stack & Queue
+                  Monotonic Stack
+                  Next Greater Element
+                  Daily Temperatures
+                  Largest Rectangle in Histogram
+                  Valid Parentheses
+                  Min Stack
+                  Implement Queue using Stack
+                  Sliding Window Maximum (Deque)
+================================================================================================================================================================
+Week 4 – Linked List
+          Reverse Linked List
+          Detect Cycle
+          Merge Two Lists
+          Remove Nth Node
+          Reverse K Group
+          LRU Cache
+          Copy List with Random Pointer
+======================================================================
+Week 5 – Trees (Part 1)
+                DFS
+                BFS
+                Level Order Traversal
+                Maximum Depth
+                Diameter
+                Balanced Tree
+                Lowest Common Ancestor
+                Binary Tree Paths
+                Week 6 – Trees (Part 2)
+                Binary Search Tree
+                Validate BST
+                Kth Smallest
+                Serialize / Deserialize
+                Trie
+                Word Search
+                Implement Trie
+======================================================================
+Week 7 – Heap & Priority Queue
+          Top K Frequent
+          K Closest Points
+          Merge K Sorted Lists
+          Median Finder
+          Task Scheduler
+          Meeting Rooms II
+================================================================================
+Week 8 – Revision + Mock Interviews
+      Timed coding rounds
+      Pattern recognition
+      Mixed questions
+      Google-style follow-ups
+====================================================================================================================================================================================
+Phase 2 – Advanced Algorithms (Weeks 9–14)
+      Week 9
+            Recursion
+            Backtracking
+            Subsets
+            Permutations
+            Combination Sum
+            N Queens
+============================================================
+Week 10
+      Dynamic Programming (Part 1)
+      Fibonacci
+      Climbing Stairs
+      House Robber
+      Coin Change
+      LIS
+============================================================
+Week 11
+      Dynamic Programming (Part 2)
+      Knapsack
+      Partition Equal Subset
+      Edit Distance
+      LCS
+      Decode Ways
+============================================================
+Week 12
+        Graphs
+        BFS
+        DFS
+        Topological Sort
+        Number of Islands
+        Course Schedule
+============================================================
+Week 13
+      Union Find
+      MST
+      Dijkstra
+      Bellman Ford
+      Floyd Warshall
+============================================================
+Week 14
+      Advanced Graph Problems
+      A*
+      Bidirectional BFS
+      Google graph questions
+================================================================================================================================================================
+      Phase 3 – System Design (Weeks 15–20)
+
+Week 15
+        HLD Basics
+        Scalability
+        CAP Theorem
+        Consistent Hashing
+        Load Balancer
+        Reverse Proxy
+==================================================
+Week 16
+        Databases
+        SQL vs NoSQL
+        Indexing
+        Partitioning
+        Sharding
+        Replication
+==================================================
+Week 17
+      Distributed Systems
+      Kafka
+      RabbitMQ
+      Redis
+      CDN
+      Cache Aside
+      Event-driven Architecture
+============================================================
+Week 18
+        Design Problems
+        URL Shortener
+        TinyURL
+        Notification System
+        Chat Application
+==================================================
+Week 19
+          Design Problems
+          News Feed
+          Ride Sharing
+          File Storage
+          Search Engine
+===================================================
+Week 20
+        Google-style Mock System Design Interviews
+====================================================================================================================================================================================
+Phase 4 – Low-Level Design (Weeks 21–22)
+          Parking Lot
+          Elevator
+          Splitwise
+          BookMyShow
+          Snake & Ladder
+          Chess
+          ATM
+          Vending Machine
+
+Design Patterns
+
+          Strategy
+          Factory
+          Builder
+          Adapter
+          Facade
+          Observer
+          Decorator
+          Proxy
+          Template Method
+          Singleton
+
+======================================================================================================================================================
+Phase 5 – Java & Spring Boot Deep Dive (Weeks 23–24)
+Java 21
+            Virtual Threads
+            Streams
+            Records
+            Pattern Matching
+            Sealed Classes
+            Memory Model
+            JVM Internals
+            Garbage Collection
+            Concurrency
+            Collections Internals
+            Spring Boot 3.x
+            AOP
+            Transactions
+            Security
+            JPA/Hibernate
+            Performance Tuning
+            Caching
+            REST Best Practices
+            Exception Handling
+            Testing (JUnit 5, Mockito)
+            Microservices
+            Docker
+            Kubernetes Basics
+
+================================================================================================================================================================
+Phase 6 – Google Interview Readiness (Weeks 25–26)
+Coding
+100–120 carefully selected LeetCode problems
+          Timed practice
+          Whiteboard-style explanations
+          Behavioral
+          STAR stories
+          Leadership
+          Conflict resolution
+          Ownership
+          Failure
+          Mentoring
+          Ambiguity
+          Impact
+          Googleyness
+          Collaboration
+          Communication
+          Decision-making
+          Learning mindset
+          Mock Interviews
+          Coding
+          System Design
+          Behavioral
+          Java deep dive
+          How We'll Conduct Each Session
+
+For every coding problem, we'll use the same interview framework you've been practicing:
+
+      Clarifying Questions
+      Brute-force Approach
+      Observation
+      Optimal Approach
+      Why this Data Structure / Algorithm?
+      Time & Space Complexity
+      Edge Cases
+      Java 21 Implementation
+      Google Follow-up Questions
+      Communication Feedback
+      Our Current Progress
+
+We've completed:
+
+✅ Complexity Analysis (Big-O)
+✅ Arrays
+✅ HashMap & HashSet Pattern
+✅ Fixed Sliding Window
+✅ Two Pointers
+
+We have now started Binary Search, which is the next topic in the same roadmap. After Binary Search, we'll continue with:
+
+Binary Search on Answer
+Sorting & Comparator
+Prefix Sum
+Stack & Queue
+
+...exactly as planned.
+
+I still believe this roadmap is the right one for your goal because it's tailored to your 
+8+ years of backend engineering experience and aims for the depth expected in
+Google DeepMind L5 interviews, not just solving LeetCode problems. We'll keep following it consistently until you're ready for mock interviews.
+
+
+
+
+
+
+
+
+
+
+
+
