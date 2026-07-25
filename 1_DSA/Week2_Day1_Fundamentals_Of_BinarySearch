@@ -1,1 +1,229 @@
+From today onwards, stop thinking of Binary Search as:
+        "Finding an element in a sorted array."
+
+Instead, think of it as:
+        "Finding the boundary where the answer changes."
+
+That mindset is what Google interviewers look for.
+
+=====================================================================================================================
+Google DeepMind L5 Preparation
+                                Phase 1 → Week 2 → Day 1
+                                Binary Search Pattern
+=====================================================================================================================
+Learning Objectives
+
+By the end of today's session, you should be able to answer:
+
+     - Why does Binary Search work?
+     - What is a search space?
+     - Why is Binary Search O(log n)?
+     - Why is mid = (low + high) / 2 dangerous?
+     - When should I think of Binary Search?
+     - When should I avoid Binary Search?
+
+
+=====================================================================================================================
+First Interview Question Suppose I give you:
+
+        nums = [2,5,8,10,13,18,21,30]
+        target = 13
+
+Don't code.
+Question 1 :    Why is Binary Search faster than Linear Search?
+                I'm not asking for the complexity.
+                I'm asking for the reason.
+
+  Think carefully.
+
+=====================================================================================================================
+Linear Search
+                  2
+                  5
+                  8
+                  10
+                  13
+                  18
+                  21
+                  30
+
+        Worst case:      Visit  every element
+        Time: O(n)
+
+=====================================================================================================================
+Binary Search  :     Look at the middle.
+                      2
+                      5
+                      8
+                      10
+                      13
+                      18
+                      21
+                      30
+                                ^
+
+            Suppose    middle = 13
+            Found. Done.
+
+          But suppose the target is  21
+          
+          Middle  : 13
+          
+          Now ask: Is   21 > 13 ?
+          Yes.
+
+        Can we safely ignore
+                      2                      
+                      5                      
+                      8                      
+                      10                      
+                      13
+
+                    ?                    
+                    Yes.                    
+                    Why?  :  Because the array is sorted.
+                    
+                    Every element on the left is <= 13
+                    None of them can possibly be:   21
+                    
+                    So we've eliminated half the search space.
+                    
+              *****  This is the key idea.
+=====================================================================================================================
+What is Search Space?
+
+            This is one of the most important interview concepts.
+            
+          Initially Search Space :    [2 5 8 10 13 18 21 30]
+
+          After one comparison :    [18 21 30]
+        
+          After another :          [21]
+
+  Each comparison cuts the search space approximately in half.
+  
+  Binary Search is not about the middle element.
+  
+  It is about reducing the search space.
+
+=====================================================================================================================
+Why is it O(log n)?
+                    Many candidates memorize::    O(log n)
+
+Google wants the explanation.
+
+                      Imagine  1024  elements.
+                        After one comparison                        
+                        512
+                        
+                        After two                        
+                        256
+                        
+                        Then                        
+                        128                        
+                        64                        
+                        32                        
+                        16                        
+                        8                        
+                        4                        
+                        2                        
+                        1
+                        
+          How many halvings?
+                1024
+                  ↓                  
+                  1
+
+        Answer:   log₂(1024) = 10
+        
+        Generalizing:    O(log n)
+
+====================================================================================================================================
+Interview Question:   Suppose   n = 1,000,000
+
+                      How many comparisons?
+
+                      Linear Search:   1,000,000
+                      
+                      Binary Search :   About  20
+
+That difference is why Binary Search is so powerful.
+==========================================================================================================================================================
+Standard Java Implementation
+
+                public int binarySearch(int[] nums, int target) {                
+                    int low = 0;
+                    int high = nums.length - 1;                
+                    while (low <= high) {                
+                        int mid = low + (high - low) / 2; 
+
+                        if (nums[mid] == target)
+                            return mid; 
+
+                        if (nums[mid] < target)
+                            low = mid + 1;                
+                        else
+                            high = mid - 1;
+                    }                
+                    return -1;
+                }
+
+
+====================================================================================================================================
+Notice something.   I did not write    nt mid = (low + high) / 2;
+
+        Why?
+
+                  The Famous Overflow Bug
+                  
+                  Suppose
+                          low = 2,000,000,000                          
+                          high = 2,100,000,000
+
+                  Then
+                            low + high                            
+                            becomes                            
+                            4,100,000,000
+
+                An int in Java cannot hold that value.
+
+                Overflow occurs.   
+                    The result becomes negative.
+                Binary Search breaks.
+
+                Instead use
+                          int mid = low + (high - low) / 2;
+
+                  Because                  
+                          (high - low)
+                          is always within the current search range and cannot overflow.
+
+Google L5 Interview Answer
+
+If an interviewer asks:
+              Why do we write low + (high - low) / 2 instead of (low + high) / 2?
+
+A strong answer would be:
+            "Using (low + high) / 2 can overflow when both low and high are large integers because 
+              their sum may exceed the maximum value representable by a Java int. 
+              By computing (high - low) first, we calculate the distance between the two bounds, 
+              which remains within the valid range. We then add half of that distance to low, 
+              producing the same midpoint without risking overflow."
+
+
+
+====================================================================================================================================
+
+
+
+
+
+====================================================================================================================================
+
+
+
+
+
+
+
 
