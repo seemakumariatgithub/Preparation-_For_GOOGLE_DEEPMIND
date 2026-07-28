@@ -210,6 +210,95 @@ A strong answer would be:
               which remains within the valid range. We then add half of that distance to low, 
               producing the same midpoint without risking overflow."
 
+Quick interview question for you
+        Can you prove mathematically that these two expressions are equivalent?
+        (low + high) / 2
+        and
+        low + (high - low) / 2
+        Assume no overflow occurs. This is another follow-up that Google interviewers sometimes ask.
+
+How I'd Answer in a Google Interview
+        "Mathematically, both expressions represent the midpoint. 
+        Starting with low + (high - low) / 2, we expand it to low + high/2 - low/2. 
+        Rewriting low as 2 × low / 2 allows us to simplify the expression to (low + high) / 2. 
+        The reason we prefer low + (high - low) / 2 in code is not because it computes a different midpoint, 
+        but because it avoids the potential overflow that can occur when adding two large integers."
+
+====================================================================================================================================
+When Should You Think of Binary Search?
+                Many people answer:  Sorted array.
+                
+                That's only half the story. The real indicator is:
+                
+                        Can I eliminate half of the remaining search space after each decision?                
+                If yes,
+                
+                Binary Search is probably applicable.
+
+ALSO :
+        Binary Search finds boundaries.
+
+====================================================================================================================================
+Examples
+                Example 1
+                        
+                        Find an element.                        
+                                Sorted array                        
+                        ✅ Binary Search
+
+                Example 2
+
+                        Find the first occurrence.                        
+                                1 2 2 2 2 3
+                        ✅ Binary Search
+
+                Example 3
+                
+                        Find the last occurrence.                
+                        ✅ Binary Search
+
+                Example 4
+                
+                        Find the first bad version.  :F F F F T T T T                        
+                        Notice the pattern. : False False False True True True
+
+                There is a boundary.
+
+Binary Search finds boundaries.
+        Binary Search Isn't About Arrays :  This surprises many candidates.
+        
+        Suppose I ask:   Minimum speed to finish work.
+                        No array.
+        
+                        Still Binary Search. Why?        
+        Because the answer itself forms a search space.
+        
+        We'll study this in "Binary Search on Answer."
+
+
+
+====================================================================================================================================
+Homework
+
+Without looking up solutions, implement:
+
+                Binary Search
+                First Occurrence of Target
+                Last Occurrence of Target
+                Search Insert Position
+
+For each, use your interview framework:
+
+                Clarifying questions
+                Brute force
+                Observation
+                Optimal approach
+                Why Binary Search?
+                Complexity
+                Edge cases
+                Code
+
+
 
 
 ====================================================================================================================================
@@ -224,6 +313,8 @@ A strong answer would be:
 
 
 
+
+====================================================================================================================================
 
 
 
