@@ -1,2 +1,486 @@
 Phase 1 – Week 2 – Day 2
 Binary Search on Answer (One of Google's Favourite Patterns)
+
+Learning Goal
+
+Today you'll learn a pattern that many candidates initially struggle to recognize. 
+Once you understand it, you'll be able to solve dozens of seemingly different interview questions using the same approach.
+
+==================================================================================================================================================================
+First Interview Question
+
+          Suppose I ask you:          
+                A worker can paint 10 walls per day.          
+                There are 100 walls.          
+                How many days are required?
+          
+          Easy.
+          
+          Now suppose I ask:          
+                What is the minimum painting speed required to finish in 7 days?
+          
+          Notice something.          
+                I'm no longer asking you to find something in an array.          
+                I'm asking you to find the minimum valid answer.
+
+Another Problem
+        Imagine piles of bananas. 
+            [3,6,7,11]
+
+        The monkey eats  k   bananas per hour.
+
+Question:
+
+            What is the minimum value of k that allows finishing within 8 hours?
+            
+            This is a famous interview problem.
+
+==================================================================================================================================================================
+First Thought
+
+      How would you solve it?      
+      Most candidates say:
+
+                      Try
+                      
+                      1
+                      
+                      2
+                      
+                      3
+                      
+                      4
+                      
+                      ...
+                      
+                      11
+
+
+            until one works.
+            
+            Would that work?    Yes.
+            
+            Is it efficient?    No
+
+
+==================================================================================================================================================================
+Let's Think
+
+Suppose
+        Speed = 4
+
+Can finish in time.
+
+        Then what about
+        
+        Speed = 5
+        Speed = 6
+        Speed = 7
+
+Can they also finish?
+
+        Yes.
+
+Increasing the speed cannot make the worker slower.
+
+Interesting.
+
+Suppose
+
+    Speed = 2
+
+Cannot finish.
+
+Then what about
+
+    1
+
+Can it finish?
+
+No.
+
+Because it's even slower.
+
+Notice the pattern.
+
+                Speed
+                
+                1   2   3   4   5   6   7
+                
+                F   F   F   T   T   T   T
+                
+                There is a boundary.
+                
+                False False False True True True
+
+What finds boundaries?
+
+Binary Search.
+==================================================================================================================================================================
+This Is the Big Idea
+
+      We're not searching an array.
+      
+      We're searching the answer space.
+
+==================================================================================================================================================================
+Search space:
+
+Minimum possible speed
+
+↓
+
+1
+
+Maximum possible speed
+
+↓
+
+max(piles)
+
+Every speed is a candidate answer.
+
+==================================================================================================================================================================
+Generic Pattern
+
+          Whenever you see
+
+                Minimum...
+                
+                or
+                
+                Maximum...
+
+          ask yourself:
+          
+          Can I check whether a candidate answer is valid?
+
+        If yes,
+        
+        there is a good chance Binary Search on Answer applies.
+==================================================================================================================================================================
+Example
+
+Suppose
+
+      Speed = 4
+
+                Hours needed:
+                
+                ceil(3/4)=1
+                
+                ceil(6/4)=2
+                
+                ceil(7/4)=2
+                
+                ceil(11/4)=3
+                
+                Total = 8
+
+Exactly valid.
+
+    Can we do even better?
+
+  Search the left half.
+
+Suppose
+
+          Speed = 2
+
+          Hours:     2+3+4+6 = 15
+
+          Too slow.
+
+          Need a larger speed.
+
+        Search the right half.
+==================================================================================================================================================================
+Binary Search Logic
+
+                          low = minimum possible answer                          
+                          high = maximum possible answer
+                          
+                          while(low <= high){                          
+                              mid                          
+                              if(mid works){                          
+                                  answer = mid                          
+                                  search left
+                              }                          
+                              else{                          
+                                  search right
+                              }                          
+                          }
+
+
+        Notice something.
+        
+        When mid works,  we don't stop.
+        
+        Why? Because we're looking for the minimum valid answer.
+
+
+
+
+==================================================================================================================================================================
+Generic Algorithm
+
+                        Pick a candidate answer.                        
+                        ↓                        
+                        Can I verify it?                        
+                        ↓                        
+                        YES                        
+                        ↓                        
+                        Move Left                        
+                        (looking for a smaller valid answer)                        
+                        ↓                        
+                        NO                        
+                        ↓                        
+                        Move Right                        
+                        (need a larger answer)
+
+==================================================================================================================================================================
+
+Problems Using This Pattern
+
+      These are all Google favourites.
+      
+                            Koko Eating Bananas
+                            Capacity to Ship Packages Within D Days
+                            Minimum Speed to Arrive on Time
+                            Split Array Largest Sum
+                            Aggressive Cows
+                            Allocate Books
+                            Painter's Partition
+                            Magnetic Force Between Balls
+      
+      They all look different.
+      
+      They're actually the same algorithm.
+
+
+
+
+
+==================================================================================================================================================================
+Time Complexity
+
+      Suppose
+      
+              Search Space = 1...1,000,000
+              
+                      Binary Search performs              
+              log₂(1,000,000)              
+              ≈20              
+              iterations.
+              
+              If each validation takes              
+              O(n)
+              
+              Overall complexity becomes              
+              O(n log M)
+              
+              where
+                    n = input size
+                    M = size of the answer search space
+
+==================================================================================================================================================================
+How to Recognize Binary Search on Answer
+
+        Ask these questions:
+        
+        1.     Am I trying to find a
+        
+                minimum valid value?
+                maximum valid value?
+       
+       2.      Can I write a function like
+        
+                boolean isPossible(int candidate)
+        
+                that tells me whether a candidate answer works?
+
+        3.    Does the answer space look like
+        
+                    F F F F T T T T                    
+                    or                    
+                    T T T T F F F
+        
+                  If yes,
+        
+              Binary Search is a strong candidate.
+
+
+
+
+====================================================================================================================================================================================================================================================================================================================================
+
+Interview Questions
+
+Answer these as if we're in a Google interview.
+              
+              Q1    Why does Binary Search on Answer require a monotonic property?              
+                      Explain what monotonic means in this context.
+
+
+ANSWER:   ********This is the sentence I want you to remember:
+                "Monotonicity gives me a safe way to eliminate half of the search space."
+
+
+L5 Answer :
+
+          "Binary Search on Answer requires a monotonic feasibility function because after evaluating a candidate answer, 
+          I need to determine which half of the search space can be safely eliminated.
+          
+          For example, when looking for a minimum feasible value, the predicate typically looks like F F F F T T T T. 
+            Once a candidate becomes feasible, every larger candidate remains feasible. This gives us a single boundary 
+          between infeasible and feasible values.
+          
+          Because of this monotonicity, evaluating mid tells me whether I should search to the left or right. 
+          Without it, I cannot safely discard half of the search space."
+              
+              Q2    Why do we continue searching after finding a valid answer?              
+                      Why don't we stop immediately?
+
+
+
+L5 answer
+
+          "Finding a feasible candidate doesn't necessarily mean I've found the optimal answer. 
+            If the requirement is to find the minimum feasible value, I record the current candidate and continue searching 
+            the left half for a smaller feasible value. Conversely, for a maximum feasible value, I would continue searching the right half."
+
+              
+              Q3    How do you determine the initial
+              
+                              low                              
+                              and                              
+                              high
+              
+                    values?
+
+      Don't choose low and high randomly.
+                Think:                
+                      What is the smallest possible answer?                
+                      What is the largest possible answer?
+                
+                These become your initial search boundaries.
+
+    Example: Koko Eating Bananas
+                        piles = [3, 6, 7, 11]
+                        
+                        Question:    Minimum eating speed to finish within 8 hours?
+                        
+                        low     The monkey must eat at least 1 banana/hour.
+                        
+                        So :    low = 1
+
+                        high
+                                  There is no benefit in eating faster than the largest pile.
+                        
+                        If:  n   high = 11
+                        
+                                  Koko can finish each pile in at most one hour.
+                        
+                        Therefore:      high = max(piles)
+                            So:
+                            
+                            [1 ............... 11]
+                             ↑                  ↑
+                            low               high
+                            
+                            That's our answer space.
+
+General Principle
+
+          For minimum feasible answer:          
+                low  = smallest possible answer
+                high = some definitely feasible upper bound
+          
+          For maximum feasible answer:          
+                low  = some definitely feasible lower bound
+                high = largest possible answer
+          
+          The critical question is:          
+                    Can I prove that the optimal answer lies between these bounds?
+                    
+                    If yes, you've established a valid search space
+
+              
+              Q4    Suppose the valid/invalid pattern is              
+                          F T F T T
+                    
+                      Can Binary Search on Answer still work?   Why or why not?
+
+            L5 ANSWER:
+              "No. Binary Search cannot safely operate on this predicate because feasibility isn't monotonic. 
+                  A candidate being feasible doesn't tell me whether candidates to its left or right are also feasible. 
+                  Therefore, after checking mid, I cannot safely eliminate either half of the search space."
+
+
+
+              
+              Homework (No Coding Yet)
+              
+              Take this problem:
+              
+              Capacity to Ship Packages Within D Days
+              
+              Don't write code. Instead, tell me:
+              
+                          What is the search space?
+                          What would isPossible(capacity) check?
+                          Why is the answer monotonic?
+                          What would be low and high?
+
+
+
+
+
+==================================================================================================================================================================
+Communication Tip
+
+    Here's something that will help you in interviews:
+
+When you recognize this pattern, say it out loud:
+
+            "This appears to be a Binary Search on Answer problem because we're looking for the minimum feasible value, 
+              and I can define a monotonic feasibility function isPossible(candidate)."
+
+That single sentence tells the interviewer you recognise the pattern before you've written any code.
+
+
+
+
+
+
+==================================================================================================================================================================
+
+
+
+
+
+
+==================================================================================================================================================================
+
+
+
+
+
+
+
+
+==================================================================================================================================================================
+
+
+
+
+
+==================================================================================================================================================================
+
+
+
+
+
+
+
+==================================================================================================================================================================
