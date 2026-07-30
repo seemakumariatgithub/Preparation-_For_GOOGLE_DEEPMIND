@@ -455,6 +455,111 @@ That single sentence tells the interviewer you recognise the pattern before you'
 
 ==================================================================================================================================================================
 
+KOKO EATING BANANAS:
+class Solution {
+    public int minEatingSpeed(int[] piles, int h) {
+
+        int left =1; // selecting minimum
+        int right=0;// selecting maximum
+
+        for(int pile:piles){
+            right=Math.max(pile,right);
+        }
+        while(left<right){
+        int mid=left+(right-left)/2;
+        long hour=totalHour(piles,mid);
+
+        if(hour<=h){
+            right=mid;
+        }else{
+            left=mid+1;
+        }
+    }
+        return left;
+    }
+
+    private long totalHour(int[] piles, int midSpeed){
+        long totalHour=0;
+        for(int pile:piles){
+            totalHour+=(pile+midSpeed-1)/midSpeed;
+        }
+        return totalHour;
+    }
+}
+
+================================================================================================================================================================
+
+CAPACITY TO SHIP PACKAGE:
+class Solution {
+    public int shipWithinDays(int[] weights, int days) {
+
+        int left=0;
+        int right=0;
+
+        for(int weight: weights){
+            left=Math.max(left,weight);
+            right+=weight;
+        }
+
+        while(left<right){
+            int midCapacity=left+(right-left)/2;
+
+            int daysAsPerMidCapacity=calculateDays(midCapacity,weights);
+
+            if(daysAsPerMidCapacity<=days){
+                right=midCapacity;
+            }else{
+                left=midCapacity+1;
+            }            
+        }
+        return left;
+        
+    }
+
+    private int calculateDays(int midCapacity,int[] weights){
+
+        int days=1;
+        int currentLoad=0;
+        for(int weight:weights){
+            if(currentLoad+weight<=midCapacity){
+                currentLoad+=weight;
+            }else{
+                days++;
+                currentLoad=weight;
+            }
+        }
+        return days;
+    }
+}
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+
+
+
+================================================================================================================================================================
+
 
 
 
