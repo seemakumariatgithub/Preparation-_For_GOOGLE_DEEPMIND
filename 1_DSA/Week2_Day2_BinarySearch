@@ -633,11 +633,45 @@ return (int)left;
 
 
 ================================================================================================================================================================
+17. The Pattern You Should Remember
 
+You now have several problems following almost exactly the same structure:
 
+                    Koko Eating Bananas
+                              Search: eating speed
+                              Check: can finish within H hours?
 
+                    Capacity to Ship Packages
+                              Search: ship capacity
+                              Check: can ship within D days?
 
+                    Minimum Speed to Arrive on Time
+                              Search: train speed
+                              Check: can arrive within given hour?
 
+                    Split Array Largest Sum
+                              Search: maximum allowed subarray sum
+                              Check: can split into <= K subarrays?
+
+The general template is:
+
+                    while (left < right) {
+                    
+                        long mid = left + (right - left) / 2;
+                    
+                        if (isPossible(mid)) {
+                            right = mid;
+                        } else {
+                            left = mid + 1;
+                        }
+                    }
+          return left;
+
+The real skill is not memorizing the template. It's recognizing:
+
+"If I guess an answer X, can I efficiently determine whether X is feasible—and does feasibility become monotonic as X increases?"
+
+If the answer is yes, you should immediately think Binary Search on Answer.
 
 
 ================================================================================================================================================================
