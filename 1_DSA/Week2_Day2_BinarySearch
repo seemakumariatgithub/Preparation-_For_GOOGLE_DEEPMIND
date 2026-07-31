@@ -537,7 +537,44 @@ class Solution {
 
 ================================================================================================================================================================
 
+MINIMUM VALID SPEED TO ARRIVE ON TIME :
 
+class Solution {
+    public int minSpeedOnTime(int[] dist, double hour) {
+
+        //impposible constraint
+        if(hour<=dist.length-1){
+            return -1;
+        }
+        int left=1 ;   //minimum speed
+        int right=10000000; // maximum speed
+
+        while(left<right){
+            int midSpeed =left+(right-left)/2;
+
+            if(canReach(dist,hour,midSpeed)){
+                right =midSpeed;
+            }else{
+                left=midSpeed+1;
+            }
+
+        }
+        return left;
+    }
+
+    private Boolean canReach(int[] dist, double hours, int midSpeed){
+
+        double totalHour=0.0;
+
+        for( int d=0; d<dist.length-1;d++){
+            totalHour+=Math.ceil((double)dist[d]/midSpeed);
+        }
+
+        totalHour+=(double)dist[dist.length-1]/midSpeed;
+        return totalHour<=hours;
+
+    }
+}
 
 
 
