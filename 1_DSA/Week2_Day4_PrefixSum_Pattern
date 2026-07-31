@@ -43,32 +43,44 @@ This pattern is fundamental for turning repeated range calculations from O(n) in
 
                   Instead, preprocess the array.
                   
-                  Given:
+                  Given:  nums = [2,4,1,5,3]
                   
-                  nums = [2,4,1,5,3]
+                  Create: prefix = [0,2,6,7,12,15]
                   
-                  Create:
-                  
-                  prefix = [0,2,6,7,12,15]
-                  
-                  Why?
-                  
-                  We define:
+                  Why?  We define:
+
+                  prefix[i] = sum of elements before index i
 
 
+4. Now the Magic
 
+              We want:    sum(1,3)
+              
+              Which is:     4 + 1 + 5 = 10
+              
+              Using prefix sums:   prefix[4] - prefix[1] =>  12 - 2   =>   10  =>
 
+              So instead of traversing the range, we perform two array accesses and one subtraction.
+              
+              Therefore:    Range Query = O(1)     after preprocessing.
 
 ==========================================================================================================================================================
+That's the fundamental idea behind Prefix Sum:
 
-
-
-
-
-
-
+    Precompute cumulative information so that a range query can be obtained by subtracting two prefix values.
 ==========================================================================================================================================================
+    JAVA IMPLEMENTATION:    
 
+    public int[] buildPrefixSum(int[] nums) {
+        
+            int[] prefix = new int[nums.length + 1];
+        
+            for (int i = 0; i < nums.length; i++) {
+                prefix[i + 1] = prefix[i] + nums[i];
+            }
+        
+            return prefix;
+        }
 
 
 
