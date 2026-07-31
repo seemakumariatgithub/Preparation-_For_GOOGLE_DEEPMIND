@@ -676,7 +676,51 @@ If the answer is yes, you should immediately think Binary Search on Answer.
 
 ================================================================================================================================================================
 
+MAGNETIC FORCE BETWEEN BALLS:
 
+class Solution {
+    public int maxDistance(int[] position, int m) {
+
+        Arrays.sort(position);
+
+        int left=1; 
+        int right=position[position.length-1]-position[0];
+
+        int answer=0;
+
+        while(left<=right){
+            int midDistance=left+(right-left)/2;
+
+            if(canPlace(position,m,midDistance)){
+
+                answer=midDistance;
+                left=midDistance+1;
+            }else{
+                right=midDistance-1;
+            }
+
+        }
+        return answer;
+        
+    }
+
+    private boolean canPlace(int[] position, int m, int dis){
+            int ballsPlaced=1;
+            int lastPlacedPosition=position[0];
+
+            for(int p=1;p<position.length;p++){
+                if(position[p]-lastPlacedPosition >= dis){
+                    ballsPlaced++;
+                   lastPlacedPosition=position[p];
+
+                   if(ballsPlaced>=m)
+                   return true;
+                }
+
+            }
+        return false;
+    }
+}
 
 
 
