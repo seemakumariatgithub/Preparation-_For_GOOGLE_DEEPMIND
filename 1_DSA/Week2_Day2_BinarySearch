@@ -545,7 +545,52 @@ class Solution {
 ================================================================================================================================================================
 
 
+SPLIT ARRAY LARGEST SUM:
+class Solution {
+    public int splitArray(int[] nums, int k) {
+        
 
+        long left=0;
+        long right=0;
+        for(int num:nums){
+            left=Math.max(left,num);
+            right+=num;
+        }
+
+        while(left<right){
+            long midSum=left+(right-left)/2;
+
+            if(canSplit(nums,k,midSum)){
+                right=midSum;
+            }else{
+                left=midSum+1;
+            }
+        }
+return (int)left;
+    }
+
+    private boolean canSplit(int[] nums, int k, long maxSum){
+
+        int currentSum=0;
+        int subarrayCount=1;
+
+        for(int num:nums){
+
+            if(currentSum+num<=maxSum){
+                currentSum+=num;
+            }else{
+                subarrayCount++;
+                currentSum=num;
+
+                if(subarrayCount>k){
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+}
 
 
 
