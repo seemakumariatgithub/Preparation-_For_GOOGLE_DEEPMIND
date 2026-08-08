@@ -81,6 +81,89 @@ That's the fundamental idea behind Prefix Sum:
         
             return prefix;
         }
+==========================================================================================================================================================
+THEN :
+
+      int rangeSum = prefix[right + 1] - prefix[left];
+
+==========================================================================================================================================================
+COMPLEXITY:
+
+          Preprocessing    O(n)
+          Each range query  O(1)
+          Space  O(n)
+          
+          If we have q queries:  O(n + q)
+          
+          instead of potentially:  O(n × q)
+==========================================================================================================================================================
+
+8. Google L5 Follow-up
+
+              The interviewer may ask:  "Why did you create a prefix array of size n + 1 instead of n?"
+              
+              This is an excellent question.
+              
+                    Because it gives us:                    
+                      prefix[0] = 0                    
+                    and makes the range formula uniform:              
+                        sum(left, right)
+                        =
+                        prefix[right + 1] - prefix[left]
+              
+              We don't need special handling when:   left = 0
+
+
+==========================================================================================================================================================
+9. Another Important Problem
+
+                  Now consider:   nums = [1,2,3,4,5]
+                  
+                  Question:     How many subarrays have sum equal to k?
+                  
+                  Suppose: k = 5
+
+                  Possible subarrays:                  
+                                        [2,3]                                        
+                                        [5]
+                  
+                  This is where Prefix Sum becomes much more powerful.
+                  
+                  We can combine:     PREFIX SUM + HASHMAP
+                  
+                  This is an extremely important interview pattern.
+==========================================================================================================================================================
+10. The Key Mathematical Observation
+
+                      Suppose:     prefix[j] - prefix[i] = k
+                      
+                      Rearrange:   prefix[i] = prefix[j] - k
+                      
+                      So while traversing the array, if the current prefix sum is:
+                      
+                                currentSum
+                      
+                      we need to know whether we've previously seen:
+                      
+                                currentSum - k
+                      
+                      That's exactly what a HashMap can provide.
+                      
+                      This transforms a potentially quadratic subarray problem into:    O(n)
+==========================================================================================================================================================
+1. L5 Mental Model
+
+              When you see:   "Range sum"         RANGE SUM       
+              think:    Prefix Sum
+              
+              When you see:   "Number of subarrays with sum K"               NUMBER OF SUBARRAY WITH SUM as K  
+              think:  Prefix Sum + HashMap
+              
+              When you see:  "Repeated range queries"              
+              think: Preprocessing
+                      +
+                      O(1) query
+
 
 
 
@@ -92,12 +175,17 @@ That's the fundamental idea behind Prefix Sum:
 
 
 
+==========================================================================================================================================================
+
+
+
 
 ==========================================================================================================================================================
 
 
 
 
+==========================================================================================================================================================
 
 
 
@@ -106,3 +194,14 @@ That's the fundamental idea behind Prefix Sum:
 
 
 
+
+==========================================================================================================================================================
+
+
+
+==========================================================================================================================================================
+
+
+
+
+==========================================================================================================================================================
