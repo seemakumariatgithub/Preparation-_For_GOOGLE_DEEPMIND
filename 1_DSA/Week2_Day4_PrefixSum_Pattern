@@ -170,18 +170,58 @@ COMPLEXITY:
 
 
 ==========================================================================================================================================================
+🔥 The complete mental model
 
+          Whenever you see:          
+                Count subarrays with sum K
+          
+          Immediately think:
+          
+                        Subarray sum
+                               ↓
+                        Prefix Sum
+                               ↓
+                        prefix[j] - prefix[i] = k
+                               ↓
+                        prefix[i] = prefix[j] - k
+                               ↓
+                        HashMap<PrefixSum, Frequency>
 
 
 
 
 ==========================================================================================================================================================
+        And the algorithm becomes:
 
-
+        1. currentSum += nums[i]        
+        2. required = currentSum - k        
+        3. count += frequency[required]        
+        4. frequency[currentSum]++
 
 
 ==========================================================================================================================================================
+⭐ Important distinction
 
+The sequence is always:
+
+        1. Update currentSum
+        2. Calculate requiredPrefix = currentSum - k
+        3. LOOK UP requiredPrefix
+        4. Add its frequency to answer
+        5. STORE currentSum
+
+In code:
+
+          currentSum += num;          
+          int requiredPrefix = currentSum - k;          
+          count += prefixFrequency.getOrDefault(requiredPrefix, 0);          
+          prefixFrequency.merge(currentSum, 1, Integer::sum);
+
+Notice:
+
+          We look for requiredPrefix, but we store currentSum.
+
+That's a very important detail.
 
 
 
