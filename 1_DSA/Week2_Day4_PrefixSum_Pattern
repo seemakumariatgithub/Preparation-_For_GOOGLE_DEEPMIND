@@ -226,8 +226,31 @@ That's a very important detail.
 
 
 ==========================================================================================================================================================
+Now the complete algorithm
 
 
+            public int subarraySum(int[] nums, int k) {
+            
+                Map<Integer, Integer> prefixFrequency = new HashMap<>();
+            
+                prefixFrequency.put(0, 1);
+            
+                int currentSum = 0;
+                int count = 0;
+            
+                for (int num : nums) {
+            
+                    currentSum += num;
+            
+                    int requiredPrefix = currentSum - k;
+            
+                    count += prefixFrequency.getOrDefault(requiredPrefix, 0);
+            
+                    prefixFrequency.merge(currentSum, 1, Integer::sum);
+                }
+            
+                return count;
+            }
 
 
 ==========================================================================================================================================================
