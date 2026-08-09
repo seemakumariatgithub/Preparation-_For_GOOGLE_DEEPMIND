@@ -58,6 +58,166 @@ Start with:
                             watch history
                             playlists
                             advertise
+                            comment
+================================================================================================================================================================
+3. Non-functional requirements
+                        This is where the interview becomes interesting.
+                        
+                        YouTube is primarily a massively read-heavy system.
+                        
+                        We want:                        
+                                High availability                        
+                                                Users should still be able to watch videos even if some infrastructure fails.
+                        
+                                Low playback latency                        
+                                                When a user clicks a video, playback should begin quickly.
+                                                This is often called: Time to First Frame (TTFF)
+
+                                High scalability
+                                                We need to support enormous numbers of:                                                
+                                                                uploads
+                                                                video views
+                                                                concurrent streams
+                                                                searches
+
+                                Durability
+                                        Video data is extremely valuable.                                        
+                                        Losing uploaded videos is unacceptable.
+                                        
+                                Global availability                                        
+                                        Users are distributed geographically.
+                                        A user in India shouldn't need to retrieve every video byte from a server in the US.
+================================================================================================================================================================
+4. Back-of-the-envelope estimation
+                At L5, don't skip this.                
+                Let's make reasonable assumptions.
+                
+                Suppose:                        
+                        2 billion monthly active users
+                        500 million daily active users
+                        100 million videos uploaded/day
+                        5 billion video views/day
+                
+                We don't need exact real-world numbers. We're demonstrating architectural reasoning.
+
+                Video views
+                                5 billion / 86,400
+                                ≈ 57,870 views/sec
+                
+                Average playback requests are therefore tens of thousands per second.                
+                But that's only the average.
+                
+                Peak traffic could easily be:    5x – 10x average
+
+                So we should design for hundreds of thousands of playback-related requests/sec.
+
+
+
+
+================================================================================================================================================================
+5. The most important observation
+                Tell the interviewer:
+                
+                                “The dominant workload is video delivery rather than video metadata access. 
+                                        Therefore, I don't want application servers or databases serving the actual video bytes. 
+                                        I'll separate the control plane from the data plane.”
+                
+                This is a very important L5-level insight.
+                
+                Control plane
+                
+                Handles:                
+                                authentication
+                                metadata
+                                search
+                                permissions
+                                video processing orchestration   
+
+                Data plane
+                
+                Handles:                        
+                        actual video bytes
+                        thumbnails
+                        streaming
+                
+                That leads us to:
+
+                                     CONTROL PLANE
+                                           │
+                                  API Gateway / Services
+                                           │
+                                Metadata / Search / Auth
+                                           │
+                                           ▼
+                                      Databases
+                        
+                        
+                                      DATA PLANE
+                                           │
+                                           ▼
+                                          CDN
+                                           │
+                                           ▼
+                                     Object Storage
+                                           │
+                                           ▼
+                                     Video Segments
+
+
+
+================================================================================================================================================================
+6. High-level architecture
+                        Here's the architecture I'd draw on the whiteboard:
+
+                                                 USERS
+                                                   │
+                                                   ▼
+                                            DNS / Global LB
+                                                   │
+                                                   ▼
+                                                 CDN
+                                            ┌──────┴──────┐
+                                            │             │
+                                      Video Content    API Requests
+                                            │             │
+                                            │             ▼
+                                            │        API Gateway
+                                            │             │
+                                            │      ┌──────┼──────────┐
+                                            │      │      │          │
+                                            │      ▼      ▼          ▼
+                                            │   Video   Search    User/Auth
+                                            │   Service Service    Service
+                                            │      │      │
+                                            │      │      ▼
+                                            │      │   Search Index
+                                            │      │
+                                            │      ▼
+                                            │   Metadata DB
+                                            │
+                                            ▼
+                                       Object Storage
+                                            ▲
+                                            │
+                                      Video Processing
+                                            ▲
+                                            │
+                                        Message Queue
+                                            ▲
+                                            │
+                                       Upload Service
+                                            ▲
+                                            │
+                                          Client
+
+
+Now let's justify every box.
+================================================================================================================================================================
+
+
+
+
+
 
 ================================================================================================================================================================
 
@@ -65,12 +225,6 @@ Start with:
 
 
 
-================================================================================================================================================================
-
-
-
-
-
 
 ================================================================================================================================================================
 
@@ -78,34 +232,3 @@ Start with:
 
 
 
-
-================================================================================================================================================================
-
-
-
-
-
-
-================================================================================================================================================================
-
-
-
-
-
-
-================================================================================================================================================================
-
-
-
-
-
-
-================================================================================================================================================================
-
-
-
-
-
-
-
-ments
