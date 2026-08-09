@@ -213,6 +213,260 @@ Start with:
 
 Now let's justify every box.
 ================================================================================================================================================================
+7. Why CDN?
+
+                        This is probably the most important component of YouTube's architecture.                        
+                        Suppose 1 million people watch the same popular video.
+                        
+                        Without a CDN:
+                                        1 million users
+                                               │
+                                               ▼
+                                        Application Servers
+                                               │
+                                               ▼
+                                        Object Storage
+
+                        That's terrible.  The application layer becomes involved in serving enormous amounts of data.
+
+                Instead:
+
+                                User
+                                  │
+                                  ▼
+                                Nearest CDN Edge
+                                  │
+                                  ├── Cache HIT ──► Video
+                                  │
+                                  └── Cache MISS
+                                          │
+                                          ▼
+                                     Origin Storage
+
+================================================================================================================================================================
+
+Why?CDN:
+        CDNs provide:
+                        
+                        geographic proximity
+                        caching
+                        lower latency
+                        massive bandwidth
+                        reduced origin load
+                        
+         So I'd tell the interviewer:
+                 “Because video delivery is bandwidth-intensive and geographically distributed, 
+                   I'd put a CDN in front of the video origin. Application servers should not stream video bytes.”
+                        
+         That's a very strong statement.
+
+
+
+
+================================================================================================================================================================
+8. Why Object Storage?
+                Examples conceptually include:                
+                        Google Cloud Storage
+                        Amazon S3
+                
+                We need to store enormous amounts of video data.
+                
+                A relational database is not appropriate for storing video binaries.
+
+Why object storage?
+                extremely durable
+                highly scalable
+                inexpensive compared with database storage
+                designed for large objects
+                integrates naturally with CDN
+
+
+================================================================================================================================================================
+9. Video Upload Architecture
+
+                Now let's look at uploading.                
+                A common mistake is:
+
+                                        Client
+                                           ↓
+                                        Application Server
+                                           ↓
+                                        Database
+                We don't want the application server to carry huge video uploads.
+                
+                Instead:
+
+                             Client
+                                │
+                                ▼
+                        Upload Service
+                                │
+                                │ generate upload URL
+                                ▼
+                          Signed URL
+                                │
+                                ▼
+                         Object Storage
+                                │
+                                ▼
+                          Upload Event
+                                │
+                                ▼
+                             Queue
+                                │
+                                ▼
+                       Video Processing
+
+
+
+================================================================================================================================================================
+10. Why direct upload?
+                Suppose a user uploads a 5 GB video.
+                
+                If the request goes:
+                        Client
+                         ↓
+                        Application Server
+                         ↓
+                        Object Storage
+
+                the application server becomes a bandwidth bottleneck.
+                
+                Instead:
+
+                        Client
+                           │
+                           │ directly uploads
+                           ▼
+                        Object Storage
+
+
+                The backend only handles authorization and upload coordination.
+                
+                Interview statement
+                
+                                “I'd use a pre-signed upload URL so the client can upload directly to object storage. 
+                                This keeps the application tier stateless and prevents large media transfers from consuming application-server resources.”
+                
+                Excellent L5 reasoning.
+
+================================================================================================================================================================
+
+11. What happens after upload?
+
+                The video is not immediately ready for playback.
+                
+                We need processing.
+
+                                Object Storage
+                                      │
+                                      ▼
+                                Upload Event
+                                      │
+                                      ▼
+                                Message Queue
+                                      │
+                                      ▼
+                                Video Processing Workers
+
+                Workers perform:
+                        
+                        validation
+                        virus/security scanning
+                        transcoding
+                        thumbnail generation
+                        metadata extraction
+                        packaging
+
+
+================================================================================================================================================================
+
+12. Why asynchronous processing?
+                                Suppose a 2 GB video takes several minutes to process.                                
+                                We don't want:
+
+                                HTTP request
+                                     │
+                                     ▼
+                                wait 5 minutes
+                                     │
+                                     ▼
+                                response
+
+
+                        Instead:
+                        
+                                        Upload
+                                           ↓
+                                        202 Accepted
+                                           ↓
+                                        Processing asynchronously
+
+
+                The user can be notified when processing completes.
+
+        L5 answer
+        
+        “Video transcoding is CPU/GPU intensive and potentially long-running, 
+                so I'd decouple it from the upload request using an event-driven pipeline.”
+
+================================================================================================================================================================
+13. Video Transcoding
+
+                Users upload videos in many formats:
+
+                        MOV
+                        MP4
+                        AVI
+                        MKV
+                        ...
+
+
+        Devices also support different codecs and resolutions.
+        
+        Therefore:
+
+                Original Video
+                      │
+                      ▼
+                Transcoding Pipeline
+                      │
+                 ┌────┼─────────┐
+                 ▼    ▼         ▼
+                144p 720p      1080p
+
+We can generate multiple bitrate representations.
+================================================================================================================================================================
+14. Why multiple resolutions?
+
+                        Suppose a user has poor network connectivity.                        
+                        If we only have:                        
+                                                1080p
+                        
+                        the video may constantly buffer.
+Instead:
+
+1080p
+720p
+480p
+360p
+144p
+
+The player can dynamically switch.
+
+
+
+
+================================================================================================================================================================
+15. Adaptive Bitrate Streaming
+
+                This is an important YouTube concept.
+                
+                Instead of downloading one huge video file:
+                
+                                video.mp4
+                
+                we divide it into small segments.
 
 
 
@@ -225,10 +479,22 @@ Now let's justify every box.
 
 
 
+================================================================================================================================================================
 
+================================================================================================================================================================
+
+
+
+================================================================================================================================================================
+
+
+================================================================================================================================================================
 ================================================================================================================================================================
 
 
 
 
 
+================================================================================================================================================================
+
+================================================================================================================================================================
