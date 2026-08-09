@@ -653,6 +653,391 @@ The client downloads the manifest and selects segments based on available bandwi
                         
                         "Use Cassandra because YouTube is huge."
 ================================================================================================================================================================
+21. Search
+        Search should not hit the primary database directly.
+        
+        Bad:        
+                        User
+                         ↓
+                        Search API
+                         ↓
+                        Database
+                         ↓
+                        LIKE '%java%'
+        
+        At massive scale, that's expensive.
+        
+        Instead:
+                        Video Metadata
+                              │
+                              ▼
+                        Search Index
+                              │
+                              ▼
+                        Search Service
+
+A search engine maintains an inverted index.
+
+Conceptually:
+                "java"
+                   ↓
+                video1
+                video27
+                video891
+                video2039
+
+================================================================================================================================================================
+22. Search indexing pipeline
+                When a video is uploaded:
+
+                                Video Service
+                                      │
+                                      ▼
+                                Metadata DB
+                                      │
+                                      ▼
+                                Event
+                                      │
+                                      ▼
+                                Search Indexer
+                                      │
+                                      ▼
+                                Search Cluster
+
+This can be asynchronous.
+
+Why?
+
+Search indexing doesn't need to block video upload.
+================================================================================================================================================================
+23. Caching
+        We can cache frequently accessed metadata.
+                Video Service
+                     │
+                     ▼
+                   Redis
+                     │
+                   MISS
+                     │
+                     ▼
+                  Database
+
+        Cache:
+                video metadata
+                channel information
+                popular videos
+                configuration
+
+But don't use Redis as the primary storage for videos.
+
+
+================================================================================================================================================================
+24. Likes and Views
+                Suppose a popular video receives:
+                        1 million views/minute
+                
+                Updating a database row synchronously:
+                
+                        UPDATE videos
+                        SET views = views + 1
+                
+                can become a hot row.
+
+                Instead:
+                
+                        Playback Event
+                              │
+                              ▼
+                        Message Queue
+                              │
+                              ▼
+                        Aggregation
+                              │
+                              ▼
+                        Persistent Store
+                
+                Aggregate counts asynchronously.
+                
+                This introduces eventual consistency, which is usually acceptable for view counts.
+
+================================================================================================================================================================
+25. Why asynchronous view counting?
+
+                        Because:
+                        
+                        User watching video
+                        
+                        should not depend on:
+                        
+                        Database successfully incremented view count
+                        
+                        Playback should succeed even if analytics infrastructure is temporarily degraded.
+                        
+                        This is an important separation of concerns.
+================================================================================================================================================================
+================================================================================================================================================================
+                        SYSTEM EXTENSION FOR OTHER FEATURES
+================================================================================================================================================================
+================================================================================================================================================================
+26. Recommendation System
+
+Now let's extend the design.
+
+                        User Activity
+                        
+                              Watch
+                              Like
+                              Search
+                              Subscribe
+                              Skip
+                             Complete                        
+                                ↓                        
+                        Event Pipeline                        
+                                ↓                        
+                        Data Processing                        
+                                ↓                        
+                        Feature Store                        
+                                ↓                        
+                        Recommendation Models                        
+                                ↓                        
+                        Candidate Generation                        
+                                ↓                        
+                             Ranking                        
+                                ↓                        
+                        Recommended Videos
+
+For a Google-level discussion, mention that recommendation is a separate large subsystem.
+
+Don't attempt to put ML inference directly into the basic video-serving path without discussing latency and availability.
+
+================================================================================================================================================================
+27. Comments
+
+Comments can be separated:
+
+                Comment Service
+                      │
+                      ▼
+                Comment DB
+
+Read path:
+                Video
+                 ↓
+                Comment Service
+                 ↓
+                Cache / DB
+
+
+Comments don't need to block video playback.
+================================================================================================================================================================
+28. Subscription Notifications
+
+                        User uploads video                        
+                               ↓                        
+                        Subscription Service                        
+                               ↓                        
+                        Event Queue                        
+                               ↓                        
+                        Notification Service                        
+                               ↓                        
+                        Push / Email
+
+Again, asynchronous.
+================================================================================================================================================================
+29. Complete Architecture
+
+Here's the version I'd recommend you draw in an interview:
+
+                           USERS
+                             │
+                             ▼
+                    DNS / Global Routing
+                             │
+                             ▼
+                           CDN
+                       ┌─────┴─────┐
+                       │           │
+                  Video Data    API Requests
+                       │           │
+                       │           ▼
+                       │      Load Balancer
+                       │           │
+                       │       API Gateway
+                       │           │
+                       │    ┌──────┼──────────────┐
+                       │    │      │              │
+                       │    ▼      ▼              ▼
+                       │  Video   Search      User/Auth
+                       │ Service  Service       Service
+                       │    │      │
+                       │    │      ▼
+                       │    │   Search Index
+                       │    │
+                       │    ▼
+                       │ Metadata DB
+                       │
+                       ▼
+                  Object Storage
+                       ▲
+                       │
+                Video Processing
+                       ▲
+                       │
+                     Queue
+                       ▲
+                       │
+                 Upload Service
+                       ▲
+                       │
+                     Client
+
+
+Supporting Infrastructure:
+
+       ┌────────────────────────────────────────┐
+       │ Redis / Cache                          │
+       │ Kafka / Event Streaming                │
+       │ Analytics                              │
+       │ Recommendation System                  │
+       │ Monitoring / Logging / Tracing         │
+       └────────────────────────────────────────┘
+
+
+
+================================================================================================================================================================
+30. Failure Scenarios — L5 Level    *********** IMPORTANT POINT FOR DISCUSSION TO DIFFERENTIATE YOURSELF FROM OTHERS
+
+                This is where you can differentiate yourself.                
+                What if CDN goes down?
+                
+                        Route traffic to another CDN/origin path.
+                
+                But this increases latency and origin load.
+
+
+
+================================================================================================================================================================
+
+What if one application server dies?
+
+                Because services are stateless:
+                
+                Load Balancer
+                     │
+                     ├── Server A ❌
+                     ├── Server B
+                     └── Server C
+                
+                Traffic moves to B/C.
+
+================================================================================================================================================================
+What if a transcoding worker dies?
+
+        The queue retains the job.
+        
+        Another worker retries it.
+        
+        Therefore:
+        
+                The processing pipeline should be designed for at-least-once processing and idempotent jobs.
+        
+        That's a very good L5 point.
+
+================================================================================================================================================================
+
+31. What if the same video is processed twice?
+
+                This is where you discuss idempotency.
+                
+                Give each processing job:
+                
+                                videoId + processingVersion
+                
+                Before writing the output, verify whether that version already exists.
+                
+                This prevents duplicate processing from corrupting state.
+
+
+
+
+
+================================================================================================================================================================
+
+32. What if Object Storage is temporarily unavailable?
+
+                The upload isn't considered successfully processed until durable storage confirms it.
+                
+                For playback:
+                
+                        CDN can continue serving cached segments.
+                        New origin fetches may fail.
+                        Retry/failover mechanisms can be used.
+                
+                This demonstrates that you're thinking about degraded operation, not just the happy path.
+
+
+
+
+================================================================================================================================================================
+33. Security
+
+        For L5, don't forget this.
+        
+        Upload
+                authentication
+                authorization
+                file validation
+                malware scanning
+                size limits
+
+        Playback
+                authorization for private videos
+                signed URLs/tokens where appropriate
+                rate limiting
+
+        Data
+                encryption at rest
+                TLS in transit
+        
+
+
+
+================================================================================================================================================================
+34. Observability
+
+Production systems need:
+
+        Metrics
+                upload success rate
+                playback failure rate
+                TTFF
+                buffering ratio
+                CDN hit ratio
+                API latency
+                queue depth
+                transcoding latency
+                Logs
+        
+        Centralized structured logs.
+        
+                Tracing
+        
+        Distributed tracing across:
+        
+                API Gateway
+                 → Video Service
+                 → Metadata
+                 → CDN
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+================================================================================================================================================================
 
 
 
@@ -661,10 +1046,6 @@ The client downloads the manifest and selects segments based on available bandwi
 ================================================================================================================================================================
 
 
-================================================================================================================================================================
-
-
-
 
 
 ================================================================================================================================================================
@@ -675,4 +1056,9 @@ The client downloads the manifest and selects segments based on available bandwi
 
 ================================================================================================================================================================
 
+
+
+
+
 ================================================================================================================================================================
+
