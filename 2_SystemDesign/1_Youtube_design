@@ -468,11 +468,190 @@ The player can dynamically switch.
                 
                 we divide it into small segments.
 
+                                For example:
+                                
+                                segment1
+                                segment2
+                                segment3
+                                segment4
+                                ...
 
+The client can choose the appropriate bitrate for each segment.
 
+Conceptually:
+                
+                Network Good
+                
+                1080p
+                  ↓
+                1080p
+                  ↓
+                1080p
+                
+                
+                Network deteriorates
+                
+                1080p
+                  ↓
+                720p
+                  ↓
+                480p
 
+This dramatically improves playback experience.
+================================================================================================================================================================
+16. HLS / DASH
+                We can use adaptive streaming protocols such as:                
+                        HLS
+                        MPEG-DASH
+                
+                Conceptually:
 
+                        Manifest
+                        
+                            ↓
+                        
+                        1080p playlist
+                        720p playlist
+                        480p playlist
+                        360p playlist
+                        
+                            ↓
+                        
+                        Video segments
 
+The client downloads the manifest and selects segments based on available bandwidth.
+
+================================================================================================================================================================
+7. Playback Flow
+
+                This is probably the most important sequence to explain.
+                
+                User clicks:                
+                        youtube.com/watch?v=ABC
+
+                Step 1                
+                        Request goes through:
+
+                                DNS
+                                 ↓
+                                CDN / Edge
+                                 ↓
+                                API Gateway
+
+                Step 2                
+                        Video Service retrieves metadata:
+                                Video ID
+                                Title
+                                Description
+                                Thumbnail
+                                Manifest URL
+
+                Step 3                
+                        Client requests the video manifest.
+                
+                Step 4                
+                        CDN serves the manifest.
+                
+                Step 5                
+                        Client requests video segments.
+
+                                Client
+                                  ↓
+                                CDN
+                                  ↓
+                                segment001
+                                segment002
+                                segment003
+                                ...
+
+                If the CDN has the segment:                
+                        CACHE HIT                
+                                No request to origin.
+
+                If not:
+                
+                        CACHE MISS
+                              ↓
+                        Object Storage
+                              ↓
+                             CDN
+                              ↓
+                            Client
+================================================================================================================================================================
+8. Why CDN caching works extremely well
+                Imagine a viral video:                
+                        10 million users
+                
+                They may request the same segments.                
+                        The first request:
+                
+                        User
+                         ↓
+                        CDN
+                         ↓
+                        Object Storage
+
+        Then:
+        
+                CDN Cache
+                
+                        segment1
+                        segment2
+                        segment3
+                
+                The next millions of users get the content from the CDN.                
+                This dramatically reduces origin bandwidth.
+================================================================================================================================================================
+19. Metadata Database
+
+                We don't want video metadata inside object storage.
+                
+                Store:
+                
+                Video
+                ------------------
+                videoId
+                ownerId
+                title
+                description
+                duration
+                visibility
+                createdAt
+                status
+                thumbnailUrl
+                manifestUrl
+                
+                A database is appropriate here because metadata queries are structured.
+
+================================================================================================================================================================
+20. SQL or NoSQL?
+        This is a great interview discussion.
+
+                        SQL                        
+                                Advantages:                                
+                                        strong consistency
+                                        transactions
+                                        relationships
+                                        structured queries
+                        NoSQL                                
+                                Advantages:                                
+                                        horizontal scalability
+                                        massive throughput
+                                        simple key-based access
+                        
+                        For video metadata, either can work depending on scale and query requirements.
+                        
+                        At Google-scale, I would likely say:
+                        
+                                “I wouldn't make the database choice based on popularity of a technology. 
+                                        I'd first examine the access patterns. If metadata is mostly key-based and 
+                                        requires massive horizontal scaling, a distributed NoSQL datastore is attractive.
+                                        If we need richer relational queries and transactional semantics, a distributed relational 
+                                        database may be preferable.”
+                        
+                        That's much stronger than saying:
+                        
+                        "Use Cassandra because YouTube is huge."
 ================================================================================================================================================================
 
 
@@ -481,14 +660,13 @@ The player can dynamically switch.
 
 ================================================================================================================================================================
 
-================================================================================================================================================================
-
-
 
 ================================================================================================================================================================
 
 
-================================================================================================================================================================
+
+
+
 ================================================================================================================================================================
 
 
