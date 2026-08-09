@@ -1010,46 +1010,157 @@ Production systems need:
         Metrics
                 upload success rate
                 playback failure rate
-                TTFF
+                TTFF    ( Time to First Frame)
                 buffering ratio
                 CDN hit ratio
                 API latency
                 queue depth
                 transcoding latency
-                Logs
+
+        Logs:        
+                Centralized structured logs.
         
-        Centralized structured logs.
-        
-                Tracing
-        
-        Distributed tracing across:
+        Tracing        
+                Distributed tracing across:
         
                 API Gateway
                  → Video Service
                  → Metadata
                  → CDN
 
+================================================================================================================================================================
+35. Important Trade-offs
 
+        This is the part I want you to practice saying naturally.
+
+| Decision             | Why                                    | Trade-off                                |
+| -------------------- | -------------------------------------- | ---------------------------------------- |
+| CDN                  | Reduce latency & origin bandwidth      | Cache invalidation/cost                  |
+| Object storage       | Durable massive storage                | Higher access latency than local storage |
+| Direct upload        | Avoid application bandwidth bottleneck | More complicated client flow             |
+| Async transcoding    | Scalable processing                    | Video isn't immediately available        |
+| Message queue        | Decoupling & resilience                | Eventual consistency                     |
+| NoSQL/distributed DB | Horizontal scale                       | Query/transaction limitations            |
+| Redis                | Very low latency                       | Memory cost / ephemeral nature           |
+| Adaptive streaming   | Handles variable networks              | Multiple copies increase storage         |
+| Async analytics      | Doesn't affect playback                | Counts may be delayed                    |
 
 
 ================================================================================================================================================================
+36. The Most Important L5 Insight
+
+        If the interviewer asks:        
+                "What is the most important architectural decision here?"
+        
+        I'd answer:        
+                “Separating video delivery from application logic.”
+        
+        Explain:
+
+                Control Plane
+                
+                        API Gateway
+                             ↓
+                        Services
+                             ↓
+                        Metadata / Search / Auth
+                
+                
+                Data Plane
+                
+                        CDN
+                         ↓
+                        Object Storage
+                         ↓
+                        Video Segments
 
 
+Why?
 
+        Because video traffic is orders of magnitude larger than metadata traffic.
+        
+        If you mix them:
+                your application tier becomes the bottleneck.
+                
+        By separating them:
+
+                API traffic → scalable services                
+                Video traffic → CDN + object storage
+        
+        we can independently scale both workloads.
+        
+        That is the kind of architectural reasoning I'd want you to demonstrate at L5.
+================================================================================================================================================================
+37. How You Should Answer This in the Actual Interview
+
+Don't memorize the diagram.
+
+Use this sequence:
+
+1. Clarify requirements
+        ↓
+2. Define scale
+        ↓
+3. Identify dominant workload
+        ↓
+4. Define APIs
+        ↓
+5. High-level architecture
+        ↓
+6. Upload flow
+        ↓
+7. Processing pipeline
+        ↓
+8. Playback flow
+        ↓
+9. Storage
+        ↓
+10. CDN + caching
+        ↓
+11. Search
+        ↓
+12. Scaling
+        ↓
+13. Failure handling
+        ↓
+14. Security
+        ↓
+15. Observability
+        ↓
+16. Trade-offs
 
 ================================================================================================================================================================
+And one rule for your Google DeepMind preparation:
 
+Never say:
 
+        "I'll use Kafka."
 
+Instead say:
 
+        "I have a long-running asynchronous workload and I don't want it coupled to the user request, s
+        o I'll introduce a durable event/queueing layer. Kafka is one implementation option."
 
-================================================================================================================================================================
+Never say:
 
+        "I'll use Redis."
 
+Say:
 
+        "This data is frequently accessed, latency-sensitive, and can tolerate cache misses, so a distributed cache is appropriate."
 
-================================================================================================================================================================
+Never say:
 
+        "I'll use Cassandra because YouTube is huge."
+
+Say:
+
+        "The access pattern is primarily key-based and the dataset is extremely large, 
+        so a horizontally scalable distributed datastore is appropriate; the exact choice depends on consistency and query requirements."
+
+That shift—from technology-first thinking to requirement → 
+                property → technology—is one of the biggest 
+                things that will make your answers sound L5 rather than senior-developer/implementation level.
 
 
 
