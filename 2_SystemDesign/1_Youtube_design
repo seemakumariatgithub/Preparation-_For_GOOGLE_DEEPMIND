@@ -1,1 +1,111 @@
+1. Start by framing the problem
 
+        If the interviewer says:
+                                  Design YouTube.
+
+Don't immediately draw Kafka, Redis, Cassandra, etc.
+
+Start with:
+            “Before I design the architecture, I'd like to clarify the scope and the most important non-functional requirements. 
+              YouTube is a very broad system, so I'll initially focus on video upload, video processing, video playback, metadata, 
+                and basic search. 
+            I can then extend the design for recommendations, comments, likes, subscriptions, and analytics if we have time.”
+=========================================================================================================
+
+2. Requirements
+              Functional requirements:              
+                      For the initial design, let's support:
+              
+              Video upload :              
+                        User should be able to:                        
+                              upload a video
+                              provide title/description
+                              specify visibility
+                              receive processing status
+                              Video playback
+                    
+              Users should be able to:              
+                        search videos
+                        open a video
+                        stream/watch it
+                        resume playback
+                        Video metadata
+              
+              Store:              
+                      title
+                      description
+                      uploader
+                      duration
+                      thumbnail
+                      upload timestamp
+                      visibility
+                      processing status
+                      Search
+              
+              Users should be able to search videos using:              
+                          "Java tutorial"
+                          "system design"
+                          "Google interview"
+
+              Later extensions
+              
+                        We can add:                        
+                            likes
+                            comments
+                            subscriptions
+                            notifications
+                            recommendations
+                            watch history
+                            playlists
+                            advertise
+
+================================================================================================================================================================
+
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+
+
+
+ments
