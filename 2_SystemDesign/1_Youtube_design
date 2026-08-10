@@ -1166,6 +1166,70 @@ That shift—from technology-first thinking to requirement →
 
 
 ================================================================================================================================================================
+The one sentence to remember for Google L5
+
+If the interviewer asks:
+        "Why are you using HLS/DASH?"
+
+Don't say:
+        "Because YouTube uses adaptive streaming."
+
+Say:
+                "I'm using adaptive bitrate streaming so the client can consume the video as small segments and 
+                        dynamically switch between different bitrate representations based on current network and buffer conditions, 
+                        allowing us to maintain playback with minimal buffering despite fluctuating bandwidth."
+
+Then, if they ask "Why HLS/DASH specifically?", say:
+
+        "HLS and MPEG-DASH provide standardized ways to describe the available representations through manifests and 
+        request the corresponding media segments. The client can then select the appropriate representation as network conditions change."
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+
+
+
+
+================================================================================================================================================================
+
+
+
+
+
+
+
+================================================================================================================================================================
+
 
 
 
