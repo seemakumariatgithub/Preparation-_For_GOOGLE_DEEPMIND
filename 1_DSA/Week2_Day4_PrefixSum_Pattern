@@ -254,9 +254,34 @@ Now the complete algorithm
 
 
 ==========================================================================================================================================================
+quastion for pratice :
+5. The three problems we've now connected
+
+This is the important part for your Google DeepMind preparation.
 
 
+| Problem                                         | What we store                | Why                                  |
+| ----------------------------------------------- | ---------------------------- | ------------------------------------ |
+| **LeetCode 560 — Subarray Sum Equals K**        | `prefixSum → frequency`      | Count all matching subarrays         |
+| **Longest Subarray Sum K**                      | `prefixSum → earliest index` | Maximize length                      |
+| **LeetCode 525 — Contiguous Array**             | `prefixSum → earliest index` | Transform 0→-1, then maximize length |
+| **LeetCode 974 — Subarray Sums Divisible by K** | `remainder → frequency`      | Count matching remainder pairs       |
 
+
+Your practice set for this topic
+
+I'd recommend solving these in this order:
+
+LeetCode 560 — Subarray Sum Equals K
+LeetCode 525 — Contiguous Array
+LeetCode 974 — Subarray Sums Divisible by K
+Longest Sub-Array with Sum K — GeeksforGeeks
+
+Don't just code them. For each one, practice saying:
+
+"The requirement is X, therefore I need to preserve Y in the HashMap."
+
+That's the exact reasoning skill we're targeting for your L5 interview preparation.
 
 ==========================================================================================================================================================
 
