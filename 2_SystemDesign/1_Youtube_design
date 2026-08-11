@@ -1184,14 +1184,17 @@ Then, if they ask "Why HLS/DASH specifically?", say:
         "HLS and MPEG-DASH provide standardized ways to describe the available representations through manifests and 
         request the corresponding media segments. The client can then select the appropriate representation as network conditions change."
 
-
-
-
 ================================================================================================================================================================
+That's the L5-level explanation.
 
+Mental model
 
+Remember just this:
 
+        One huge video → split into small segments → create multiple quality versions → manifest tells player what's available → 
+        player chooses the next segment/quality → CDN delivers it.
 
+That's the entire idea behind HLS/DASH + adaptive bitrate streaming.
 
 
 ================================================================================================================================================================
