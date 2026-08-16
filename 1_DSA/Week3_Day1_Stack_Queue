@@ -459,6 +459,97 @@ But there's one special case
                 area = height × width
 
 ================================================================================================================================================
+For our standard implementation, we'll use:
+
+                        heights[stack.peek()] >= heights[i]
+
+This allows us to handle equal heights cleanly by keeping the latest occurrence.
+
+================================================================================================================================================
+Complete Algorithm
+
+                Now you have all the pieces.
+                
+                For every index i:
+                
+                                While current bar is smaller or equal:
+                                while (!stack.isEmpty()
+                                        && heights[stack.peek()] >= heights[i])
+
+                    Pop the previous bar.
+                    
+                    For the popped bar:
+                                    height = heights[popped]
+                                    right = i
+                                    left = stack.isEmpty() ? -1 : stack.peek()
+                                    
+                                    width = right - left - 1
+                                    
+                                    area = height * width
+
+                    Update maximum area.
+                    
+                    Then push current index.
+
+At the end, there may still be bars in the stack.
+
+            Those bars have no smaller element to their right, so we use:   right = n
+
+            and calculate their areas.
+
+
+================================================================================================================================================
+            import java.util.ArrayDeque;
+            import java.util.Deque;
+            
+            class Solution {            
+                public int largestRectangleArea(int[] heights) {            
+                    int n = heights.length;
+                    int maxArea = 0;            
+                    Deque<Integer> stack = new ArrayDeque<>();            
+                    for (int i = 0; i < n; i++) {            
+                        while (!stack.isEmpty()
+                                && heights[stack.peek()] >= heights[i]) {            
+                            int height = heights[stack.pop()];            
+                            int right = i;
+                            int left = stack.isEmpty() ? -1 : stack.peek();            
+                            int width = right - left - 1;            
+                            maxArea = Math.max(maxArea, height * width);
+                        }            
+                        stack.push(i);
+                    }            
+                    // Process remaining bars
+                    while (!stack.isEmpty()) {            
+                        int height = heights[stack.pop()];            
+                        int right = n;
+                        int left = stack.isEmpty() ? -1 : stack.peek();            
+                        int width = right - left - 1;            
+                        maxArea = Math.max(maxArea, height * width);
+                    }            
+                    return maxArea;
+                }
+            }
+
+
+
+
+================================================================================================================================================
+⭐ L5 interview explanation
+
+If the interviewer asks you to explain the entire approach:
+
+            "For each bar, I want to determine the maximum width over which that bar can 
+                remain the limiting height. That width is bounded by the first smaller bar on the left and 
+                the first smaller bar on the right. I maintain an increasing monotonic stack of indices. 
+                When I encounter a smaller bar, the current index becomes the right boundary for 
+                all taller bars popped from the stack. After popping, the new stack top gives 
+                the previous smaller boundary. Therefore, for a popped bar, the width is 
+                    currentIndex - stack.peek() - 1, with -1 as the left boundary when the stack 
+                becomes empty. Each index is pushed and popped at most once, 
+                giving O(n) amortized time and O(n) auxiliary space."
+
+That's a strong L5-level explanation.
+
 
 
 
@@ -476,8 +567,20 @@ But there's one special case
 
 
 
+
 ================================================================================================================================================
 
 
 
-}
+
+
+
+================================================================================================================================================
+
+
+
+
+
+
+================================================================================================================================================
+
