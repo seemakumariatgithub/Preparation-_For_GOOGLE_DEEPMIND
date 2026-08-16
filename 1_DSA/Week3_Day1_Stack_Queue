@@ -550,33 +550,89 @@ If the interviewer asks you to explain the entire approach:
 
 That's a strong L5-level explanation.
 
+================================================================================================================================================
+The stack is increasing because it gives us the boundary information we need efficiently.
 
+L5-level explanation
 
+        "I maintain an increasing monotonic stack of bar indices so that for every bar in 
+            the stack, I know that there has not yet been a smaller bar to its right. 
+            When a smaller bar arrives, it becomes the first smaller element to the right 
+            for the taller bars being popped. After popping, the new stack top gives the previous 
+            smaller element on the left. Therefore, popping a bar tells me that both boundaries 
+            needed to calculate its maximum possible rectangle are now known."
 
-
+That's the key.
 
 ================================================================================================================================================
+🔥 Important distinction
+    
+    Compare the three problems we've learned:
+    
+    Next Greater Element
+                        Stack = decreasing
+                        
+                        Waiting for → GREATER
+                        Pop when → current > stack.top
+    Daily Temperatures
+                        Stack = decreasing
+                        
+                        Waiting for → WARMER
+                        Pop when → current > stack.top
+    Largest Rectangle
+                        Stack = increasing
+                        
+                        Waiting for → SMALLER
+                        Pop when → current < stack.top
+    
+    The common pattern is:
+    
+            Elements enter the stack because their answer is not known yet. 
+            A future element arrives and resolves them, so we pop them.
+    
+    That is the real Monotonic Stack pattern.
+================================================================================================================================================
+One important takeaway
 
+            Don't think:            
+                    "The stack stores heights that might produce the maximum area."
+            
+            Think:            
+                "The stack stores unresolved bars whose right boundary has not yet been found."
+            
+            Once a smaller bar arrives:
 
-
-
+                        smaller bar
+                             ↓
+                        right boundary discovered
+                             ↓
+                        pop taller bar
+                             ↓
+                        stack top gives left boundary
+                             ↓
+                        calculate maximum possible rectangle for that bar
 
 ================================================================================================================================================
+Your answer, upgraded to L5 level
 
+    "The brute-force approach is to iterate over every element and scan to its right 
+        until I find the first strictly greater element. In the worst case, this takes O(n²) 
+        time and O(1) auxiliary space, excluding the output.
 
+To optimize it, I use a monotonic decreasing stack of indices. 
+The stack contains elements that have not yet found their next greater element. 
+When I encounter the current element and it is greater than the element at the top of the stack, 
+the current element becomes the first greater element to the right for that stack element, 
+so I pop it and record the current value as its answer. I continue this while 
+the current value is greater than the stack top, then push the current index.
 
+The stack invariant is that the corresponding values are maintained in 
+decreasing order, and every index in the stack represents an unresolved element.
 
-
-
-================================================================================================================================================
-
-
-
-
-
-
-================================================================================================================================================
-
+Although there is a while loop inside the for loop, each index is pushed at 
+most once and popped at most once. Therefore, there are at most O(n) push 
+and O(n) pop operations overall, giving O(n) amortized time complexity. 
+The auxiliary space is O(n)."
 
 
 
