@@ -631,9 +631,86 @@ most once and popped at most once. Therefore, there are at most O(n) push
 and O(n) pop operations overall, giving O(n) amortized time complexity. 
 The auxiliary space is O(n)."
 
+================================================================================================================================================
+
+Your final L5 answer
+
+            I'd recommend you memorize the structure, not the exact words:
+            
+            "The brute-force solution is to scan to the right for every element
+                until I find the first smaller element, giving O(n²) time.
+            
+            To optimize this, I use a monotonically increasing stack of indices. 
+            The stack contains indices of elements whose first smaller element on the right has not yet been found.
+            
+            When the current value is smaller than the value corresponding to the stack top, 
+            the current element is the first smaller element for that stack entry, because we're processing     
+            from left to right and this is the first smaller value we've encountered. I pop the index and store the 
+            current value as its answer. I continue popping while the current value is smaller than the stack top, 
+            then push the current index.
+            
+            Each index is pushed exactly once and can be popped at most once. 
+            Therefore, although there is a nested while loop, the total number of stack 
+            operations across the entire traversal is O(n), giving O(n) amortized time. 
+            The auxiliary space is O(n) for the stack, and the output requires O(n) space."
+
+That's a very good Google L5 interview explanation.
+
+================================================================================================================================================
+🔥 The deeper pattern you've now learned
+
+You can now recognize the general form:
+
+                        For every element:
+                            I don't know its answer yet
+                                   ↓
+                               push index
+                                   ↓
+                        Future element arrives
+                                   ↓
+                        Does it satisfy the relationship?
+                               ↙           ↘
+                             YES            NO
+                              ↓              ↓
+                            pop             keep waiting
+                            resolve
+                            answer
+
+
+
+And the most important question to ask yourself is:
+
+            "What future event resolves the current element?"
+
+For example:
+
+            Next Greater:
+            current > top
+            
+            Next Smaller:
+            current < top
+            
+            Daily Temperature:
+            current temperature > previous temperature
+            
+            Largest Rectangle:
+            current height < previous height
+
+
+================================================================================================================================================
 
 
 
 
 ================================================================================================================================================
 
+
+
+
+================================================================================================================================================
+
+
+
+
+
+================================================================================================================================================
