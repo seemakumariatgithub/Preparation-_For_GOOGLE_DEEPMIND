@@ -1,0 +1,285 @@
+Week 4 – Linked List
+          Reverse Linked List
+          Detect Cycle
+          Merge Two Lists
+          Remove Nth Node
+          Reverse K Group
+          LRU Cache
+          Copy List with Random Pointer
+
+================================================================================================================================================
+
+Yes. Let's start Day 9 — Linked List from absolute basics and take it to Google DeepMind L5 level.
+
+The goal is not just to memorize linked-list code. For L5, you should be able to:
+
+                   1. Understand the pointer structure.
+                   2. Identify the invariant before coding.
+                   3. Explain why the algorithm works.
+                   4. Handle edge cases without trial-and-error.
+                   5. State time/space complexity.
+                   6. Discuss alternative approaches and trade-offs.
+                   7. Write clean Java 21 code.
+                   8. Debug pointer manipulation systematically.
+
+================================================================================================================================================
+Day 9 — Linked Lists
+
+Our progression will be:
+                              1. Linked List fundamentals
+                                     ↓
+                              2. Traversal
+                                     ↓
+                              3. Fast / Slow pointers
+                                     ↓
+                              4. Reverse Linked List
+                                     ↓
+                              5. Cycle Detection
+                                     ↓
+                              6. Find Middle
+                                     ↓
+                              7. Merge Two Sorted Lists
+                                     ↓
+                              8. Remove Nth Node From End
+                                     ↓
+                              9. Linked-list invariants
+                                     ↓
+                              10. L5-level problems / variations
+
+
+We will not jump directly into LeetCode problems. First, let's build the pointer intuition.
+
+
+================================================================================================================================================
+1. What Is a Linked List?
+          An array stores elements next to each other conceptually:
+
+          Array:          
+                    index
+                     0    1    2    3
+                     ↓    ↓    ↓    ↓
+                    [10] [20] [30] [40]
+
+          A linked list is different.
+          
+          Each node contains:
+                    value + reference to next node
+
+          For example: 10 → 20 → 30 → 40 → null
+
+          Conceptually:
+          +------+------+
+          |  10  |  ●───┼──────┐
+          +------+------+
+                              ↓
+                        +------+------+
+                        |  20  |  ●───┼──────┐
+                        +------+------+
+                                            ↓
+                                      +------+------+
+                                      |  30  |  ●───┼──────┐
+                                      +------+------+
+                                                          ↓
+                                                    +------+------+
+                                                    |  40  | null |
+                                                    +------+------+
+
+The important thing is:  A node doesn't know where the entire list is. It only knows where the next node is.
+================================================================================================================================================
+2. Java Node Definition
+          For interview problems, you'll commonly see:
+                    
+                    class ListNode {
+                        int val;
+                        ListNode next;
+                    
+                        ListNode() {}
+                    
+                        ListNode(int val) {
+                            this.val = val;
+                        }
+                    
+                        ListNode(int val, ListNode next) {
+                            this.val = val;
+                            this.next = next;
+                        }
+                    }
+
+A list:   1 → 2 → 3 → 4 → null
+
+can be created as:
+                    ListNode head = new ListNode(1);
+                    
+                    head.next = new ListNode(2);
+                    head.next.next = new ListNode(3);
+                    head.next.next.next = new ListNode(4);
+
+But in interviews, you generally don't need to construct the input manually.
+
+The platform gives you:     ListNode head
+
+and you manipulate it.
+
+================================================================================================================================================
+3. The Most Important Linked-List Concept
+
+          This:    head
+                     is not the linked list itself.          
+                    It is a reference to the first node.
+
+          Think:
+          head
+           ↓
+          1 → 2 → 3 → 4 → null
+
+          If you lose head without another reference, you can lose access to the entire list.
+
+          This is why pointer manipulation needs to be deliberate.
+
+================================================================================================================================================
+4. Basic Traversal
+
+                    Suppose: 1 → 2 → 3 → 4 → null
+                    
+                    To traverse:                    
+                              ListNode current = head;                    
+                              while (current != null) {                              
+                                  System.out.println(current.val);                              
+                                  current = current.next;
+                              }
+                    
+                    The critical line is:  current = current.next;
+                    
+                    It means:   Move the pointer to the next node.
+
+
+
+
+================================================================================================================================================
+5. Traversal Invariant
+
+          This is where we start thinking at L5 level.
+          
+          At the beginning of every iteration:          
+                    current points to the next node that still needs to be processed.
+          
+          For example:          
+                    1 → 2 → 3 → 4 → null
+                    ↑
+                    current
+          
+          After one iteration:          
+                    1 → 2 → 3 → 4 → null
+                        ↑
+                      current
+          
+          After another:          
+                    1 → 2 → 3 → 4 → null
+                            ↑
+                          current
+          
+          This is an invariant.          
+          An invariant is simply:          
+                    A property that remains true at a particular point in every iteration.
+          
+          This concept becomes extremely powerful with linked lists.
+
+
+
+
+================================================================================================================================================
+6. How Linked Lists is Different From Arrays
+
+          Array problems usually involve:          
+                                        index
+
+          For example:          
+                    nums[i]
+                    nums[i + 1]
+                    nums[i - 1]
+
+          Linked lists don't have direct indexing.
+
+          To get the 100th node, you generally have to traverse:
+          
+          1 → 2 → 3 → ... → 100
+
+          Therefore:
+
+          Access by index:
+                    Array       → O(1)
+                    Linked List → O(n)
+================================================================================================================================================
+7. Linked List Complexity
+
+          | Operation                       | Singly Linked List |
+          | ------------------------------- | -----------------: |
+          | Access by index                 |               O(n) |
+          | Search                          |               O(n) |
+          | Insert at head                  |               O(1) |
+          | Delete head                     |               O(1) |
+          | Insert after known node         |               O(1) |
+          | Delete after known node         |               O(1) |
+          | Insert at end with tail pointer |               O(1) |
+          | Insert at end without tail      |               O(n) |
+
+
+This is why linked lists are useful when we need frequent pointer-based insertions/deletions.
+
+================================================================================================================================================
+8. The Three Pointer Patterns You Must Master
+
+For your Day 9 preparation, these three patterns are extremely important.
+
+Pattern 1 — One pointer
+=================================================================================================================================================
+
+
+===============================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+
+
+================================================================================================================================================
+
+
+
+
+
+
+================================================================================================================================================
+
+
+
+
+
+
+================================================================================================================================================
+
+
+
+
+
+================================================================================================================================================
+
+
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
