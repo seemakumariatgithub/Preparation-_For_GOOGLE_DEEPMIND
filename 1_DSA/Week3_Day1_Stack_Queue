@@ -81,14 +81,11 @@ We'll first understand:
                     
                     Look at the middle bars.
                     
-                                        █
-                                        █
-                                        █
-                                    █   █
-                                    █   █
-                                    █   █
-                                █   █   █   █
-                                █   █   █   █
+                                    █   █   █
+                                    █   █   █
+                                    █   █   █
+                                █   █   █   █   █
+                                █   █   █   █   █
                                 2   5   5   5   2
                     
                     For a bar of height 5:                    
