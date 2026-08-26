@@ -90,23 +90,83 @@ You could say:
 
 
 ================================================================================================================================================
+Question 2 — Interviewer asks
+
+Why is the base case necessary in recursion?
+
+              And don't just say:
+              
+              "Otherwise it will run forever."
+              
+              I want you to explain:
+              
+              What happens if there is no base case?
+              Why must every recursive call make progress toward the base case?
+              What happens to the JVM if recursion never terminates?
+              
+              Answer this in your own words, and I'll review it at L5 level.
 
 
+Good. The core concept is correct. I'd rate that 8.5/10 for L5.
 
+There is one important JVM-level distinction to make.
 
+Refined answer: 
+
+            "The base case defines the terminating condition of the recursive function.
+            Without it, or without making progress toward it, recursive calls can continue indefinitely. 
+            Each recursive call must reduce the problem or otherwise move the state toward a condition 
+              where the base case becomes reachable.
+
+          If recursion continues without termination, 
+          each method invocation creates a new stack frame. 
+          Eventually the JVM's thread stack is exhausted, 
+            resulting in a StackOverflowError. 
+
+        This is different from a general OutOfMemoryError; ordinary recursion depth primarily consumes the thread's stack."
 
 ================================================================================================================================================
+Part 3 — Recursive Case vs Base Case
 
-
-
-
+      Let's make this very concrete.
+        There are two distinct components:
+        
+        Base case
+          This says:      
+            "I know the answer directly, so stop recursing."
+      
+        Recursive case
+          This says:    
+            "I don't know the answer directly, so reduce the problem from n to n - 1."     
+      
 ================================================================================================================================================
-
-
-
-
+⭐ L5 Concept: Progress Invariant
+      
+      Here's an important interview concept.
+      
+      For every recursive algorithm, ask:
+      
+            What is my measure of progress?
+      
+                  For factorial:   n → n - 1 → n - 2 → ... → 1
+                  
+                  The measure is:     n  and it decreases every call.
+                  
+                  For binary search:    search space → half → quarter → ...
+                  
+                  For tree recursion:    current node → child node → subtree
+                  
+                  For backtracking:    The state changes toward a decision/completion condition, 
+                                        then we undo that decision and explore another branch.
+                  
+      This concept becomes extremely important when we reach Backtracking.
 ================================================================================================================================================
-
+Question 3 — L5 Interview
+      The interviewer asks:      
+              What is the time complexity and space complexity of this function?
+      
+      And more importantly:      
+            Why is the space complexity O(n) even though we aren't explicitly creating an array, HashMap, or other data structure?
 
 
 
