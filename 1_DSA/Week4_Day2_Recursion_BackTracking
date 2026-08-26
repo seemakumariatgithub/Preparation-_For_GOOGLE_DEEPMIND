@@ -1,0 +1,100 @@
+Recursion → Backtracking
+  Our progression today
+  
+        Recursion fundamentals
+                ↓
+        Call stack
+                ↓
+        Base case + recursive case
+                ↓
+        Recursion tree
+                ↓
+        Time / Space complexity
+                ↓
+        Subsets
+                ↓
+        Permutations
+                ↓
+        Backtracking
+                ↓
+        Pruning
+                ↓
+        L5 collective practice
+
+================================================================================================================================================
+Part 1 — What is Recursion?
+
+      Suppose the interviewer asks:
+          "What is recursion, and when would you choose recursion over an iterative solution?"
+      
+      Don't give me a textbook definition.
+          Answer as if you're explaining your design choice to a Google DeepMind L5 interviewer.
+      
+      Think about:      
+          What happens to the problem at every recursive call?
+          What makes recursion eventually terminate?
+          What is the relationship between the original problem and the smaller problem?
+          When is recursion particularly useful?
+
+Question 1
+  Explain recursion in your own words and give me one example where recursion naturally fits the problem.
+
+
+1. Recursion is not necessarily "the same computation"
+  A recursive function doesn't always perform exactly the same computation. More precisely:
+  
+                A recursive solution solves a problem by reducing it 
+                into one or more smaller instances of the same problem.
+
+    The problem definition remains the same, but the input/state becomes smaller.
+================================================================================================================================================
+The better distinction is between Iteration and recusrion:
+
+"I choose recursion when the problem has a natural recursive structure 
+  and expressing the solution recursively makes the state transitions clearer. 
+  I choose iteration when recursion doesn't provide enough benefit or when 
+  I want to avoid call-stack overhead."
+
+
+
+
+================================================================================================================================================
+
+
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+Explain recursion in your own words and give me one example where recursion naturally fits the problem.
