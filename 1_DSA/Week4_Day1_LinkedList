@@ -7,6 +7,45 @@ Week 4 – Linked List
           LRU Cache
           Copy List with Random Pointer
 
+
+So our immediate sequence should be:
+
+Week 2 → Day 8: Recursion & Backtracking
+
+We'll start from scratch at the L5 level:
+
+What recursion actually means
+          Call stack
+          Base case
+          Recursive case
+          How to identify recursion
+          Recursion tree
+          Time/space complexity
+          Subsets
+          Permutations
+          Combination Sum
+          Backtracking
+          Pruning
+          L5 interview practice
+
+Then:
+
+Day 9 → Linked List
+Day 10 → Trees
+Day 11 → Advanced Tree Patterns
+Day 12 → Graph Fundamentals
+Day 13 → Graph Algorithms
+Day 14 → Week 2 Collective Practice
+
+After that:
+
+Week 3 → Heap / Priority Queue
+
+So don't start Heap yet.
+
+Let's begin the correct next session:
+Week 2 — Day 8: Recursion & Backtracking
+
 ================================================================================================================================================
 
 Yes. Let's start Day 9 — Linked List from absolute basics and take it to Google DeepMind L5 level.
