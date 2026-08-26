@@ -168,24 +168,124 @@ Question 3 — L5 Interview
       And more importantly:      
             Why is the space complexity O(n) even though we aren't explicitly creating an array, HashMap, or other data structure?
 
+I'd make one small refinement for L5 precision:
+
+    Time complexity is O(n) because there are n recursive calls, and each call performs O(1) work.
+    
+    Auxiliary space is O(n) because recursion uses the JVM call stack.
+    Before the base case is reached, there can be up to n active stack frames simultaneously.
+
+⭐ L5 phrasing
+  "The auxiliary space is O(n), not because of an explicit data structure, but because the recursion depth is O(n). 
+    Each recursive invocation creates a stack frame, and 
+    these frames remain active until the base case is reached and the recursion starts unwinding."
+================================================================================================================================================
+2. Time Complexity
+
+Let's define:   T(n) = time taken by solve(n)
+
+Each call does constant work plus two recursive calls:   T(n) = 2T(n - 1) + O(1)
+SO now; 
+        T(n)
+        = 2T(n-1) + 1
+        = 2[2T(n-2) + 1] + 1
+        = 4T(n-2) + 2 + 1
+        = 8T(n-3) + 4 + 2 + 1
+        ...
+After n levels:   T(n) ≈ 2^n
+
+Therefore:  Time Complexity = O(2ⁿ)
+
+Another way to understand O(2ⁿ)
+
+Look at the number of calls at each level.  1 + 2 + 4 + ... + 2ⁿ
+This geometric series is:   2ⁿ⁺¹ - 1
+
+Dropping constants:    O(2ⁿ)
+
+So the exponential complexity comes from the branching factor of 2.
+================================================================================================================================================
+4. Now the important part: Space Complexity
+        
+        This is where people commonly make a mistake.
+        
+        You might think:   "There are O(2ⁿ) calls, so space must also be O(2ⁿ)."
+        
+                    No.
+        
+        The calls don't all exist simultaneously.
+        
+        The JVM executes one branch deeply before coming back and executing the other branch.
+        
+        For example:     solve(3)
+                            |
+                         solve(2)
+                            |
+                         solve(1)
+                            |
+                         solve(0)
+        
+        At this point, the active stack contains approximately:        
+                solve(3)
+                solve(2)
+                solve(1)
+                solve(0)
+                
+        That's only O(n) stack frames.        
+            Then solve(0) returns.
+        
+        The stack starts unwinding:        
+              solve(0) returns
+              solve(1) returns
+        
+        Then the second branch of solve(1) executes.
+        
+        So we never have the entire 2ⁿ recursion tree stored in memory simultaneously.
+        
+        Therefore:        
+              Auxiliary Space = O(n)              
+              because the maximum recursion depth is n.
+
+
+Remember: ****************
+
+          Time depends on how many total nodes we visit in the recursion tree.
+          
+          Space depends primarily on the maximum depth of the active call stack.
+
+
+
+5. The key distinction
+
+          This is extremely important for your Google interview:
+          
+          Concept	Complexity
+          Number of recursive calls	O(2ⁿ)
+          Recursion depth	O(n)
+          Time	O(2ⁿ)
+          Auxiliary space	O(n)
+================================================================================================================================================
+⭐ L5 Interview Answer
+
+If the interviewer asks:
+
+"What is the time and space complexity?"
+
+A strong answer would be:
+
+        "The recurrence is T(n) = 2T(n-1) + O(1), 
+            because each invocation makes two recursive calls on n-1. 
+            This produces a binary recursion tree with O(2ⁿ) nodes, 
+            so the time complexity is O(2ⁿ).
+        
+        The auxiliary space is O(n), not O(2ⁿ), 
+          because although the recursion tree contains exponentially many total calls, 
+          only one root-to-leaf path is active at a time. 
+          The maximum recursion depth is n, so the JVM call stack requires O(n) space."
+
+That is the explanation I want you to be comfortable giving in an L5 interview.
+
 
 
 ================================================================================================================================================
 
-
-
-
-================================================================================================================================================
-
-
-
-
-================================================================================================================================================
-
-
-
-
-================================================================================================================================================
-
-
-Explain recursion in your own words and give me one example where recursion naturally fits the problem.
