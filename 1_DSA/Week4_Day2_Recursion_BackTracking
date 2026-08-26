@@ -56,6 +56,37 @@ The better distinction is between Iteration and recusrion:
   I want to avoid call-stack overhead."
 
 
+⭐ L5 Interview Answer
+
+You could say:
+
+    "Recursion is a technique 
+      where a function 
+          solves a problem by 
+            reducing it into smaller instances 
+            of the same problem 
+            and calling itself on those smaller instances. 
+
+      A recursive solution 
+        requires a 
+          1. base case 
+              that terminates the recursion 
+          and 
+          2. a recursive case that makes 
+              measurable progress toward that base case.
+
+    I would consider 
+          recursion 
+              when the problem naturally has a recursive structure
+                  —for example, 
+                        tree traversal, 
+                        divide-and-conquer algorithms, 
+                      or generating subsets and permutations. 
+
+
+            I would prefer iteration 
+                when the recursive structure doesn't add clarity 
+                or when recursion depth could create stack-overflow concerns."
 
 
 ================================================================================================================================================
