@@ -232,16 +232,87 @@ This is why linked lists are useful when we need frequent pointer-based insertio
 For your Day 9 preparation, these three patterns are extremely important.
 
 Pattern 1 — One pointer
-=================================================================================================================================================
+          current
 
+          Used for:
+          
+          traversal
+          searching
+          counting
+          detecting a value
+
+Pattern 2 — Two pointers
+          
+          slow
+          fast
+
+          Used for:
+          
+          finding middle
+          cycle detection
+          finding intersection
+          some partition problems
+
+Pattern 3 — Three pointers
+                    prev
+                    current
+                    next
+
+          Used especially for:
+          
+          reversing linked list
+          pointer rewiring
+
+You should become extremely comfortable moving between these patterns.
+=================================================================================================================================================
+9. Problem 1 — Reverse Linked List
+          This is probably the single most important linked-list problem.
+          
+          LeetCode:   206. Reverse Linked List
+          
+          Input:    1 → 2 → 3 → 4 → 5 → null
+          
+          Output:   5 → 4 → 3 → 2 → 1 → null
 
 ===============================================================================================================================================
-
-
-
-
+10. What Makes Reversal Difficult?
+                    
+                    Suppose:  1 → 2 → 3 → 4 → null
+                    
+                    You want: 1 ← 2 ← 3 ← 4
+                    
+                    For node 1, you need:  1.next = null;
+                    
+                    For node 2: 2.next = 1;                    
+                    etc.
+                    
+                    But there is a problem. If you do:  current.next = prev;
+                    
+                    you have changed the original next relationship.                    
+                    You could lose the rest of the list.
+                    
+                    Therefore:  Save current.next before changing it.
+                    
+                    This is the fundamental idea.
 ================================================================================================================================================
+1. Three-Pointer Solution
 
+          We maintain:          
+                    prev
+                    current
+                    next
+          
+          Initially:          
+                    prev = null;
+                    current = head;
+          
+          Then:          
+                    next = current.next;
+                    current.next = prev;
+                    prev = current;
+                    current = next;
+          
+          Let's understand each line.
 
 
 
