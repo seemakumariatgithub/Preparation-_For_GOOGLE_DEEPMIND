@@ -475,6 +475,22 @@ Because we're saying:
       "The branch where I chose 3 is finished.
             Restore the state to exactly what it was before that choice 
             so that the parent call can explore other possibilities."
+
+
+
+Your L5 answer
+
+  If the interviewer asks:  
+          "Why do you need to undo the choice?"
+  
+  Say:  
+            "I need to undo the choice after returning from the recursive call 
+              because that choice belongs only to the current branch of the decision tree. 
+              Once that branch is complete, I need to restore the state so the parent call can explore other branches.
+              If I don't reset the state, the chosen element will remain marked as used 
+              and valid permutations in subsequent branches may be skipped."
+  
+  That's a strong answer.
 ================================================================================================================================================
 What if we DON'T undo?    This is the critical part.
 
@@ -488,7 +504,119 @@ If we forget: used[3] = false;
  But 3 is still marked as used.
  So the algorithm incorrectly thinks: 3 → unavailable
 and therefore misses valid permutations.
+================================================================================================================================================
+⭐ The key backtracking invariant
+        
+        This is an excellent L5 concept:        
+        After returning from a recursive call, the state should be restored to exactly what it was before making the choice.
+        
+        Think of it as:        
+                      Before choice
+                            ↓
+                         MAKE choice
+                            ↓
+                         RECURSE
+                            ↓
+                         UNDO choice
+                            ↓
+                      Exactly the previous state
+        
+        This is why backtracking is often described as:
+        
+                    Choose → Explore → Unchoose
+                    
+                    or:
+                    
+                    Do → Recurse → Undo
+
+================================================================================================================================================
+🧠 One subtle but VERY important idea
+
+Backtracking is not just:     remove last element
+
+The deeper concept is:    Restore mutable state after exploring a branch.
+
+That state could be:                  
+                  path
+                  used[]
+                  remaining capacity
+                  remaining target
+                  board cells
+                  visited cells
+                  
+             For example:                  
+                  path.add(x)
+                  used[x] = true
+                  
+                  recurse()
+                  
+                  used[x] = false
+                  path.remove(...)
+                  
+            Both mutations need to be reversed.
+================================================================================================================================================
+Next: Combination Sum
+ 
+        Given:        
+              candidates = [2,3,6,7]
+              target = 7
+        
+        Find combinations that sum to 7:        
+            [2,2,3]
+            [7]
+        
+        Here, 2 can be selected multiple times.
+
+This introduces an important new question:
+      How does the recursive state change when an element can be reused?
 
 
 ================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+
+
+
+
+
 
