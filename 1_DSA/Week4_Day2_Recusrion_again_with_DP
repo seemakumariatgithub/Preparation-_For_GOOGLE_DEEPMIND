@@ -1,1 +1,29 @@
+Absolutely. 
+Let's rebuild Recursion + Backtracking properly from the ground up, 
+because this is a foundational pattern for L5 interviews. 
+We will also connect it to Dynamic Programming, 
+so you learn when to choose which pattern rather than memorizing solutions.
+============================================================================================================================================
+Recursion & Backtracking — Complete Deep Dive
 
+For Google DeepMind L5, 
+I want you to think about these as problem-solving frameworks, 
+not just coding techniques.
+
+The mental progression is:
+
+                          Recursion
+                             ↓
+                          Recursion Tree
+                             ↓
+                          Multiple Choices
+                             ↓
+                          Decision Tree
+                             ↓
+                          Backtracking
+                             ↓
+                          Pruning
+                             ↓
+                          Overlapping Subproblems
+                             ↓
+                          Dynamic Programming
