@@ -29,20 +29,61 @@ The mental progression is:
                           Dynamic Programming
 
 ============================================================================================================================================
+The most important question will eventually become:
+          "Am I exploring different possibilities, or am I repeatedly solving the same subproblem?"
 
+That question separates Backtracking from DP.
+============================================================================================================================================
+1. What exactly is recursion?
 
+          Recursion means:          
+                A function solves a problem by calling itself on a smaller or modified version of the same problem.
 
+There are always two conceptual components:
+
+          Recursive function
+                 │
+                 ├── Base case
+                 │
+                 └── Recursive case
 
 
 ============================================================================================================================================
-
-
-
+For example:
+              int factorial(int n) {
+                  if (n == 1) {
+                      return 1;
+                  }
+              
+                  return n * factorial(n - 1);
+              }
+              
+      The relationship is:      
+          factorial(n)  =     n × factorial(n-1)
+      
+      So:      
+              factorial(5)
+                   ↓
+              5 × factorial(4)
+                   ↓
+              5 × 4 × factorial(3)
+                   ↓
+              ...
 
 
 ============================================================================================================================================
+2. The three questions you should always ask
+            Whenever you see a recursive problem, immediately ask:
+            
+            Question 1 — What is my state?   What information completely describes where I am?            
+                For factorial: n
+                For subsets: index + current path
+                For permutations:  current path + used elements
+                For grid backtracking:   row + column + visited
 
+============================================================================================================================================
 
+============================================================================================================================================
 
 
 ============================================================================================================================================
