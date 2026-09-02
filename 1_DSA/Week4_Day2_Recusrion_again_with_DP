@@ -701,19 +701,135 @@ Level 5 — Google-Level Hard
                 
                 This one connects Week 2 → Week 3/4 data structures.
 ============================================================================================================================================
+26. DP comparison practice
+             After learning those, we will compare them with:
+             
+             Fibonacci:
+                        Recursion
+                            ↓
+                        Memoization
+                            ↓
+                        Tabulation
 
+             Climbing Stairs:
+                        Recursion
+                            ↓
+                        Memoization
+                            ↓
+                           DP
+
+             House Robber:
+                        Decision tree
+                            ↓
+                        Overlapping states
+                            ↓
+                            DP
+
+             Target Sum:
+                       Backtracking
+                             ↓
+                       Memoization
+                             ↓
+                       DP transformation
+
+             0/1 Knapsack:
+                      Take / Don't Take
+                            ↓
+                      Overlapping subproblems
+                            ↓
+                           DP
+             
+             This comparison is particularly valuable because it teaches you how to recognize DP from a recursive decision tree.
 
 
 
 ============================================================================================================================================
+27. Your mental framework for interviews
+            
+            When the interviewer gives you a new problem, don't immediately think:
+            
+            "Is this a backtracking problem?"
+            
+            Instead ask:
+            
+                    Question 1
+                    
+                             What are my choices?
+                            
+                                     take / skip?
+                                     choose one?
+                                     move left/right?
+                                     place something?
+                            
+                            If there are choices, a decision tree may exist.
+            
+                    Question 2
+                    
+                             Do I need all possible solutions?
+                    
+                           If yes:
+                           
+                           → Backtracking likely.
 
-
-
-
+                    Question 3
+                    
+                              Do different branches reach the same state?
+                    
+                           If yes:
+                           
+                           → Memoization / DP may help.
+                    Question 4
+                    
+                              Can I eliminate branches early?
+                    
+                              If yes:
+                              
+                              → Pruning.
+                    
+                    Question 5
+                    
+                             Is the output itself exponential?
+                    
+                             If yes:
+                             
+                             → Don't expect a polynomial-time enumeration algorithm.
 ============================================================================================================================================
+⭐ The single most important diagram
 
+I want you to remember this:
+                             Problem
+                                │
+                          Define State
+                                │
+                         What are choices?
+                                │
+                         ┌──────┴──────┐
+                         │             │
+                    Explore all?    Aggregate?
+                         │             │
+                         ↓             ↓
+                    Backtracking    Check states
+                         │             │
+                         │       Overlapping?
+                         │          /      \
+                         │        YES       NO
+                         │         ↓         ↓
+                         │        DP       Recursion/
+                         │                 Greedy/etc.
+                         ↓
+                      Pruning
 
+And one more connection:
 
+                  Recursive Decision Tree
+                            ↓
+                         Repeated State?
+                         /          \
+                       NO            YES
+                       ↓              ↓
+                  Backtracking   Memoization
+                                     ↓
+                                    DP
 
 ============================================================================================================================================
 
