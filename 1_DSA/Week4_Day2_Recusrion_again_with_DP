@@ -5,7 +5,7 @@ We will also connect it to Dynamic Programming,
 so you learn when to choose which pattern rather than memorizing solutions.
 ============================================================================================================================================
 Recursion & Backtracking — Complete Deep Dive
-
+ 
 For Google DeepMind L5, 
 I want you to think about these as problem-solving frameworks, 
 not just coding techniques.
@@ -607,7 +607,99 @@ That is a very strong interview answer.
 We won't solve these randomly. We'll progress from foundational → medium → hard.
 
 Level 1 — Recursion Foundation
+                1. Factorial                
+                        Practice:                        
+                              base case
+                              recursive case
+                              stack depth
 
+                2. Fibonacci                
+                        Practice:                
+                              recursion tree
+                              exponential complexity
+                              overlapping subproblems
+
+                3. Power of a Number                
+                        Practice:                        
+                              recursive reduction
+                              divide and conquer
+
+
+Level 2 — Backtracking Fundamentals
+            4. Subsets  :  LeetCode 78 — Subsets
+                            Pattern: take / skip
+
+            5. Permutations  : LeetCode 46 — Permutations
+                           Pattern: choose unused
+
+            6. Combinations:  LeetCode 77 — Combinations
+                            Pattern: choose from remaining indices
+
+
+Level 3 — Backtracking + Pruning
+            7. Combination Sum:  LeetCode 39 — Combination Sum
+                                 Learn:            
+                                      reuse elements
+                                      remaining target
+                                      pruning
+
+            8. Combination Sum II:  LeetCode 40 — Combination Sum II            
+                                  Learn:                                  
+                                      duplicates
+                                      don't reuse element
+                                      duplicate-level skipping
+
+            9. Letter Combinations of a Phone Number: LeetCode 17            
+                                  Learn:                                  
+                                    one decision at each level
+Level 4 — Strong Interview Problems
+              10. Generate Parentheses: LeetCode 22              
+                                  Extremely important.                                  
+                                  Learn:                                  
+                                        open count
+                                        close count
+                                        validity pruning
+
+              11. Word Search : LeetCode 79              
+                                Learn:                                
+                                        DFS
+                                        +
+                                        backtracking
+                                        +
+                                        visited state
+
+              12. Palindrome Partitioning : LeetCode 131              
+                                Learn:                                
+                                      partition
+                                      +
+                                      backtracking
+                                      +
+                                      string validation
+Level 5 — Google-Level Hard
+
+              13. N-Queens: LeetCode 51              
+                              Learn:
+                                    constraint tracking
+                                    +
+                                    pruning
+                                    +
+                                    backtracking
+
+                14. Sudoku Solver: LeetCode 37                
+                                Learn:                                
+                                        constraint satisfaction
+                                        +
+                                        aggressive pruning
+
+                15. Word Search II: LeetCode 212                
+                                Learn:                                
+                                        Trie
+                                        +
+                                        DFS
+                                        +
+                                        backtracking
+                
+                This one connects Week 2 → Week 3/4 data structures.
 ============================================================================================================================================
 
 
