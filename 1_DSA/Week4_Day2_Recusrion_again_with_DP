@@ -832,10 +832,203 @@ And one more connection:
                                     DP
 
 ============================================================================================================================================
+Problem 1 — Subsets   LeetCode 78 — Subsets
+
+       Given an integer array nums containing unique elements, return all possible subsets.
+
+          Example:
+          
+          Input:
+          [1, 2, 3]
+          
+          Output:
+          [
+            [],
+            [1],
+            [2],
+            [3],
+            [1,2],
+            [1,3],
+            [2,3],
+            [1,2,3]
+          ]
+
+The order of the subsets does not matter.
+
+
+                              []
+                        /            \
+                     [1]              []
+                 /        \          /   \
+             [1,2]        [1]      [2]     []
+              / \         /  \    /   \    / \
+        [1,2,3] [1,2] [1,3] [1] [2,3] [2] [3] []
 
 
 
+⭐ L5 Interview Answer
 
+I'd refine your answer to this:
+
+"Since the requirement is to return all subsets, 
+ I can model the problem as a binary decision tree. 
+
+ For every element, I have exactly two choices: include it in the current subset or exclude it.
+ My recursive state consists of the current index and the current path. 
+
+ When the index reaches the end of the array, I have made a decision for every element, 
+ so I copy the path into the result. 
+
+ I use backtracking to restore the path after exploring the include branch 
+ so that I can explore the exclude branch from the same parent state.
+
+ There are 2^n possible subsets, and copying each subset can take O(n), 
+  so the total time complexity is O(n·2^n), excluding only constant-time bookkeeping."
+
+That's the structure I want you to develop.
+
+
+
+7. Complexity
+
+           There are:  2^n  subsets.
+           
+           Each subset can contain up to n elements, and we have to copy it into the result.
+           
+           Therefore:
+           
+                Time: O(n · 2^n)
+                Auxiliary space:  O(n)           
+                                  for:                           
+                                      recursion stack
+                                      current path
+                Output space:  O(n · 2^n)
+           
+           This distinction is important in an L5 interview.
+
+6. One important correction about "optimized"
+
+     You said:  "Backtracking optimizes the brute force approach."
+     
+     I'd be careful with that wording.
+     
+     For generating all subsets, the problem itself has:  2^n  possible outputs.
+     
+     So you cannot produce all subsets in polynomial time.
+     
+          Backtracking isn't making an inherently exponential-output problem polynomial.
+     
+     Instead:     
+        Backtracking systematically enumerates the required search space 
+        while avoiding unnecessary work and managing the state efficiently.
+     
+     The output itself already requires exponential work.
+
+5. The real backtracking flow
+                  
+                  For every element:                  
+                        1. Choose INCLUDE
+                        2. Recurse
+                        3. Undo INCLUDE
+                        4. Choose EXCLUDE
+                        5. Recurse
+                  
+                  For element 1:
+                  
+                        path = []
+                        
+                        include 1
+                        path = [1]
+                        
+                        recurse...
+                        
+                        remove 1
+                        path = []
+                        
+                        exclude 1
+                        recurse...
+                  
+                  So the pattern is:                  
+                      choose → explore → undo → explore alternative
+
+4. When do we add to the result?
+              
+              This is another important correction.
+              
+              You said: "Once I reach the end, I'll backtrack and store it."
+              
+              The subset should actually be added when you reach 
+               the end of the decision path, before returning.
+              
+                     if (index == nums.length) {
+                         result.add(new ArrayList<>(path));
+                         return;
+                     }
+              
+              For example:              
+                  path = [1,2,3]
+                  index = 3
+              
+                  Add [1,2,3].
+              
+              Then backtrack.
+              
+              But:              
+                  path = [1,2]
+                  index = 2              
+                will eventually become another valid subset.
+
+3. What is the recursive state?
+             For subsets, you need:             
+                                   index
+                                   path
+             
+             For example:             
+                   index = 1
+                   path = [1]
+             
+             means:             
+                 "I've already made a decision about element 1, 
+                  and I'm now deciding what to do 
+                  with element at index 1."
+             
+             You do not need a used[] array here.
+             
+             That's needed for permutations because 
+              an element can be selected in different positions.
+
+
+2. The important correction: Subsets are not permutations
+
+            You said:            
+                   "For every element, I will choose it, 
+                     then proceed by choosing from the remaining available elements."
+            
+            That sounds like permutations/combinations, 
+             not the cleanest model for subsets.
+            
+            For subsets, the simplest decision at each element is:
+            
+                          element
+                         /       \
+                      INCLUDE   EXCLUDE
+            
+            For: nums = [1, 2, 3]            
+            the decision tree is:
+
+                              []
+                        /            \
+                     [1]              []
+                 /        \          /   \
+             [1,2]        [1]      [2]     []
+              / \         /  \    /   \    / \
+        [1,2,3] [1,2] [1,3] [1] [2,3] [2] [3] []
+            
+            So there are two choices per element:
+            
+                   Include it or don't include it.
+            
+            That's the cleanest mental model for LeetCode 78.
 ============================================================================================================================================
 
 
