@@ -1031,18 +1031,102 @@ That's the structure I want you to develop.
             That's the cleanest mental model for LeetCode 78.
 ============================================================================================================================================
 
+The important thing you were describing
 
+Your explanation can be condensed to this:
+At every index:
+
+                INCLUDE nums[index]
+                    ↓
+                recurse
+                    ↓
+                REMOVE nums[index]
+                    ↓
+                EXCLUDE nums[index]
+                    ↓
+                recurse
 
 ============================================================================================================================================
+Now let's write the code
+
+Once the control flow is clear, the code is very small:
 
 
+import java.util.ArrayList;
+import java.util.List;
 
+class Solution {
 
+    public List<List<Integer>> subsets(int[] nums) {
+
+        List<List<Integer>> result = new ArrayList<>();
+
+        backtrack(nums, 0, new ArrayList<>(), result);
+
+        return result;
+    }
+
+    private void backtrack(
+            int[] nums,
+            int index,
+            List<Integer> path,
+            List<List<Integer>> result) {
+
+        // Base case: all elements have been decided.
+        if (index == nums.length) {
+            result.add(new ArrayList<>(path));
+            return;
+        }
+
+        // Choice 1: include current element
+        path.add(nums[index]);
+
+        backtrack(nums, index + 1, path, result);
+
+        // Undo the choice
+        path.remove(path.size() - 1);
+
+        // Choice 2: exclude current element
+        backtrack(nums, index + 1, path, result);
+    }
+}
 ============================================================================================================================================
 
+Now an important Google follow-up
+
+The interviewer may ask:
+
+"Why do we use index instead of a used[] array for Subsets?"
+
+Think about what happens with:
+
+[1,2,3]
+
+For subsets, once we've made the decision about 1, we never need to go backwards 
+and reconsider it at a different position.
+
+We're always moving:
+
+index → index + 1
+
+So index itself tells us which elements are still available for consideration.
+
+used[] is unnecessary.
+
+That is different from permutations, where an element can be selected at any remaining position, 
+so we need explicit tracking of which elements are already used.
 
 
+🔥 This gives you a powerful comparison
+Subsets
+       State = index + path
+       Choice = include / exclude
 
+Permutations
+         State = path + used
+         Choice = choose any unused element
+
+This distinction is much more important than memorizing either code template.
 ============================================================================================================================================
 
 
