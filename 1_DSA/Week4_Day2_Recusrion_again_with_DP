@@ -1446,37 +1446,155 @@ L5 interview answer
         choosing the previous identical value, so we skip it. However, when we move to a deeper recursion level, 
         i can equal start, and we must still allow the same value to be selected again—for example, to generate [2,2]. 
        Therefore, the condition removes duplicate sibling branches without removing valid duplicate values along the path."
+
+============================================================================================================================================
+⭐ L5 Interview Answer
+
+  If the interviewer asks:  
+         "For Subsets I, would you use the Subsets II approach?"
+  
+  I'd answer:  
+        "Yes, I can use the same loop-based backtracking framework. 
+         Since Subsets I guarantees unique elements, the duplicate-skipping condition from Subsets II becomes unnecessary, 
+         so I would omit it. 
+
+         Both approaches have the same asymptotic complexity, O(n·2ⁿ). 
+
+         I prefer the loop-based version when I want a reusable backtracking template because it naturally extends to duplicate handling, 
+         combinations, and other choice-based problems. 
+
+         If the goal is simply to illustrate the binary decision tree of subsets, 
+         the include/exclude version is conceptually simpler."
+  
+  That's a strong senior-level answer because you're discussing correctness, complexity, and maintainability/generalization, not just picking one.
+
+============================================================================================================================================
+What I recommend for your Google preparation
+
+Learn both, but make this your primary mental template:
+
+                                                        backtrack(start, path):
+                                                        
+                                                            add current path
+                                                        
+                                                            for each candidate from start:
+                                                        
+                                                                choose
+                                                                recurse
+                                                                undo
+
+Then remember:
+
+               Subsets I
+               → no duplicate check
+               
+               Subsets II
+               → sort + skip duplicate siblings
+               
+               Combinations
+               → recurse with i + 1
+               
+               Combination Sum
+               → recurse with i
+               
+               Permutations
+               → iterate from 0 + used[]
+
+That gives you a single mental framework with small modifications, which is much more valuable than memorizing five separate implementations.
+
+
+============================================================================================================================================
+Problem 2 — Combination Sum
+
+Given:
+      candidates = [2, 3, 6, 7]
+      target = 7
+
+Return all unique combinations where the chosen numbers sum to target.
+A number may be chosen unlimited times.
+
+Expected result:
+                [2,2,3]
+                [7]
+
+
+The important change from Subsets is:
+     In Subsets, once we choose an element, we move past it.
+     Here, after choosing an element, we may choose the same element again.
+
+============================================================================================================================================
+What should the recursive call use for the next index?
+
+Would it be:
+             i + 1             
+             or             
+             i
+
+And more importantly, why?
+
+
+The key distinction is:
+                       Subsets / Combinations without reuse → recurse with i + 1
+                       Combination Sum with reuse            → recurse with i
+
+
+"Because the current candidate can be reused, after choosing candidates[i] 
+I keep the recursive start index at i. This allows the next recursive call to choose the same candidate again. 
+If I used i + 1, I would permanently move past the current candidate and therefore lose valid combinations such as [2,2,3]."
+============================================================================================================================================
+Let's trace [2,3,6,7], target = 7
        
+       Start:       
+                  start = 0
+                  path = []
+                  remaining = 7
        
-
+       Choose 2:       
+                 path = [2]
+                 remaining = 5
+       
+       Because 2 can be reused:       
+                 backtrack(start = 0, remaining = 5)
+       
+       We can choose 2 again:
+       
+                path = [2,2]
+                remaining = 3
+       
+       Again:       
+           backtrack(start = 0, remaining = 3)
+       
+       Choose 2:       
+                [2,2,2]
+                remaining = 1
+       
+       2 is now too large, so that branch dies.
+       
+       Backtrack:       
+                  [2,2]
+       
+       Now choose 3:       
+                  [2,2,3]
+                  remaining = 0
+       
+       ✅ Valid combination.
 ============================================================================================================================================
-Next L5 challenge
+Here, the target/remaining sum becomes part of our state.
 
-Now let's move from Subsets II to Combination Sum.
+    We can think of the recursive state as:    
+                                           (start, path, remainingTarget)
+    
+    And our stopping conditions are:    
+                                        remainingTarget == 0
+                                            → valid combination
+                                        
+                                        remainingTarget < 0
+                                            → impossible branch
+                                    
+    Because candidates are positive, once the remaining target becomes negative, 
+    adding more numbers can never bring us back to zero.
 
-
-
-============================================================================================================================================
-
-
-============================================================================================================================================
-
-
-
-============================================================================================================================================
-
-
-
-
-============================================================================================================================================
-
-
-
-
-
-============================================================================================================================================
-
-
+    That's our pruning condition.
 
 
 ============================================================================================================================================
