@@ -354,40 +354,391 @@ Problem: boundary burst.
                                   80 remain
                 
                 Then tokens gradually refill.
+
+            4. Distributed Rate Limiting
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+                              Now comes the real HLD question.
+                              
+                              Suppose we have:
+
+                                                 Gateway Cluster
+                                            +---------+---------+
+                                            |         |         |
+                                           G1        G2        G3
+
+                              If the rate limit is:  100 requests/sec/user
+                              
+                              we cannot independently maintain:                              
+                                                G1 → 100
+                                                G2 → 100
+                                                G3 → 100
+                              
+                              because the user could effectively get:  300 requests/sec
+                                    
+                                    We need shared state or a distributed quota mechanism.
+                                    
+                              Conceptually:
+                                    
+                                                      G1 ──┐
+                                                      G2 ──┼──> Distributed Rate Limit State
+                                                      G3 ──┘
+                                    
+                              Possible implementations include a distributed in-memory store or a dedicated quota service.
+                                    
+                              This is where the L5 discussion becomes interesting:                                    
+                                    How do you balance accuracy of global rate limits against the latency 
+                                          and availability cost of centralized coordination?
+                                    
+                              You don't necessarily need perfect global precision.
+
+                        5. Routing
+                           ^^^^^^^^       
+                                    Suppose the client calls:  GET /api/v1/users/123
+                                    
+                                    Gateway determines:  /api/v1/users/*
+                                                                    ↓
+                                                            User Service
+                                    
+                                    And: POST /api/v1/orders
+                                    
+                                    goes to: /api/v1/orders/*
+                                                        ↓
+                                                Order Service
+                                    
+                                    So:                                    
+                                                        Gateway
+                                                           |
+                                            +--------------+--------------+
+                                            |              |              |
+                                            v              v              v
+                                       /users/*        /orders/*      /payments/*
+                                            |              |              |
+                                            v              v              v
+                                          User           Order         Payment
+
+
+===============================================================================================================================================
+13. Why is routing useful?
+                  It means clients don't need to know the internal service topology.
+                  
+                  Without gateway:
+                  
+                              Mobile App
+                                 |
+                                 +--> user-service-17.internal
+                                 +--> order-service-32.internal
+                                 +--> payment-service-9.internal
+
+                  That's bad.
+                  
+                  With gateway:
+                  
+                  Mobile App
+                      |
+                      v
+                  api.company.com
+                      |
+                      +--> User
+                      +--> Order
+                      +--> Payment
+                  
+                  The internal architecture can evolve without forcing clients to change.
+                  
+                  That's an important form of abstraction.
+==================================================================================================================================
+  14. API Versioning
+                  
+            Suppose we currently have:   /api/v1/orders
+                  
+            Then we introduce: /api/v2/orders
+                  
+            The gateway can route:  /api/v1/orders → Order Service V1                  
+                                    /api/v2/orders → Order Service V2
+                  
+           This allows gradual migration.
+                  
+                  Clients
+                     |
+                     v
+                  Gateway
+                     |
+                     +---- V1 → Old backend
+                     |
+                     +---- V2 → New backend
+                  
+            Eventually:  V1 traffic → 0                  
+                         Then we retire V1.
+===============================================================================================================================================
+16. TLS termination
+
+            Clients communicate securely:  HTTPS
+            
+            The gateway can terminate TLS:            
+                                    Client
+                                      |
+                                     HTTPS
+                                      |
+                                      v
+                                    Gateway
+                                      |
+                                      | internal secure channel
+                                      v
+                                    Backend
+            
+            This centralizes certificate management.            
+            But at high-security boundaries, you may also use mTLS between services.            
+            The gateway shouldn't become the only security layer.
+
+
+
+===============================================================================================================================================
+17. Observability
+            
+            The gateway sees virtually every request.
+            
+            Therefore it's a natural place to collect:            
+                              request count
+                              latency
+                              status code
+                              client
+                              API
+                              region
+                              rate-limit violations
+                              authentication failures
+            
+            For example:            
+                  GET /orders
+                  200 → 120 ms
+                  
+                  POST /payment
+                  500 → 800 ms
+            
+                  GET /users
+                  429 → rate limited
+            
+            This gives us a global picture.            
+                  Google's API Gateway architecture includes logging, monitoring, and tracing around gateway requests.
+
+
+===============================================================================================================================================
+18. Request tracing
+      This is particularly important in microservices.
+      
+      Suppose:      
+                  Client
+                    |
+                    v
+                  Gateway
+                    |
+                    v
+                  Order Service
+                    |
+                    v
+                  Payment Service
+                    |
+                    v
+                  Inventory Service
+      
+      The request should carry a correlation/trace ID: traceId = abc123
+      
+      Then we can see:      
+                        abc123
+                        
+                        Gateway       5ms
+                        Order        30ms
+                        Payment     100ms
+                        Inventory    20ms
+                        
+                        Total       155ms
+      
+      Without distributed tracing, debugging becomes painful.
+============================================================================================================================================
+19. Retry — be careful here
+
+            A gateway can retry some failed requests.
+            But this is a dangerous area.
+
+            Suppose: POST /payment
+                        Gateway sends request.
+
+            Payment service processes it successfully.
+
+            But response gets lost.
+
+            Gateway sees: timeout
+
+            If gateway blindly retries: POST /payment   the payment could happen twice.
+
+            So:
+                  Retries should depend on idempotency and operation semantics.
+
+            For example: GET /products   is usually safe to retry.
+
+            But:  POST /payment  may require an idempotency key.
+
+            This is a very strong L5 point.
+
+
+===============================================================================================================================================
+20. Timeouts
+
+            Never allow:            
+                              Gateway
+                                 |
+                                 v
+                              Backend
+                                 |
+                                 | hangs for 5 minutes
+                                 |
+            to consume gateway resources indefinitely.
+
+            Set deadlines: Gateway timeout = 2 sec
+            
+            If backend hasn't responded: 504 Gateway Timeout
+      
+      But the timeout needs to be designed based on the API's SLA.
+      
+      Don't blindly make every API 2 seconds.
+===============================================================================================================================================
+21. Circuit Breaker
+            
+            Suppose Payment Service is unhealthy.
+            
+            Without protection:                              
+                              Gateway
+                                 |
+                                 +--> Payment ❌
+                                 +--> Payment ❌
+                                 +--> Payment ❌
+                                 +--> Payment ❌
+                                 +--> Payment ❌
+            
+            We keep sending requests to a failing service.
+            
+            Circuit breaker can transition:
+            
+                                          CLOSED
+                                             ↓
+                                          Failures increase
+                                             ↓
+                                          OPEN
+                                             ↓
+                                          Stop sending traffic
+                                             ↓
+                                          After cooldown
+                                             ↓
+                                          HALF OPEN
+                                             ↓
+                                          Test request
+                                             ↓
+                                          Healthy → CLOSED
+            
+            This protects the failing service and prevents cascading failures.
+
+
+
+===============================================================================================================================================
+22. The Complete Request Flow
+
+                  Now let's put everything together.
+                  
+                  User sends:                  
+                              POST /api/v1/orders
+                              Authorization: Bearer JWT
+
+Flow:
+                       Client
+                         |
+                         v
+                  Global Load Balancer
+                         |
+                         v
+                  API Gateway Cluster
+                         |
+                         v
+                 1. TLS / connection
+                         |
+                         v
+                 2. Authentication
+                         |
+                         v
+                 3. Authorization
+                         |
+                         v
+                 4. Rate limiting
+                         |
+                         v
+                 5. Request validation
+                         |
+                         v
+                 6. API version check
+                         |
+                         v
+                 7. Route selection
+                         |
+                         v
+                   Order Service
+                         |
+                         v
+                      Response
+                         |
+                         v
+                      Gateway
+                         |
+                         v
+                       Client
 ===============================================================================================================================================
 
+23. High-Level Architecture
+
+For your L5 interview whiteboard, I'd draw something like:
+
+                         INTERNET
+                            |
+                            v
+                     DNS / Global LB
+                            |
+             +--------------+--------------+
+             |              |              |
+             v              v              v
+          Gateway         Gateway        Gateway
+            G1               G2             G3
+             |               |              |
+             +---------------+--------------+
+                             |
+                    Shared Policy / Config
+                             |
+          +------------------+------------------+
+          |                  |                  |
+          v                  v                  v
+       User API          Order API         Payment API
+          |                  |                  |
+          v                  v                  v
+       User Svc           Order Svc          Payment Svc
+          |                  |                  |
+          v                  v                  v
+          DB                 DB                 DB
 
 
-===============================================================================================================================================
+Supporting Systems:
 
+     Identity Provider
+           |
+           v
+     Auth / JWT Keys
 
+     Rate Limit / Quota
+           |
+           v
+      Distributed State
 
-
-===============================================================================================================================================
-
-
-
-===============================================================================================================================================
-
-
-
-===============================================================================================================================================
-
-
-
-
-===============================================================================================================================================
-
-
-
-
-===============================================================================================================================================
-
-
-
-===============================================================================================================================================
-
-
+     Observability
+           |
+     +-----+-----+
+     |           |
+   Metrics      Logs
+     |
+   Traces
 
 ===============================================================================================================================================
 
