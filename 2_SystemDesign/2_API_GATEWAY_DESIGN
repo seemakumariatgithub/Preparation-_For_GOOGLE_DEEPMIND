@@ -1,1 +1,408 @@
+For Google DeepMind L5, API Gateway is a very good HLD topic 
+      because the interviewer is not primarily testing whether you know what an API Gateway is. 
 
+They want to see whether you can reason about 
+      traffic, 
+      security, 
+      scalability, 
+      failure isolation, 
+      rate limiting, 
+      routing, 
+      and trade-offs.
+===============================================================================================================================================
+I'll build it from first principles.
+
+API Gateway — HLD for Google DeepMind L5
+
+1. First: What problem are we solving?
+
+                Imagine we have a microservices system:
+                                         Clients
+                                            |
+                          +-----------------+-----------------+
+                          |                 |                 |
+                       Mobile             Web             External
+                          |                 |                 |
+                          v                 v                 v
+                
+                       User Service     Order Service    Payment Service
+                       Product Service  Search Service   Notification Service
+
+
+If clients directly call every microservice, we have a problem.
+
+A mobile application would need to know:
+              user-service.company.com
+              order-service.company.com
+              payment-service.company.com
+              search-service.company.com
+              ...
+
+And every service would need to independently handle:
+                authentication
+                authorization
+                rate limiting
+                logging
+                TLS
+                request validation
+                routing
+                API versioning
+                abuse protection
+
+That's a lot of duplication.
+
+So we introduce:
+
+                         Clients
+                            |
+                            v
+                    +---------------+
+                    | API GATEWAY   |
+                    +---------------+
+                       /    |     \
+                      /     |      \
+                     v      v       v
+                  User   Order    Payment
+                 Service Service  Service
+
+
+
+The gateway becomes the controlled entry point into the backend system.
+
+2. But why do we need a Gateway?
+              This is the question I would expect from an L5 interviewer:
+              
+                          "Why can't the Load Balancer do this?"              
+              Excellent question.
+              
+              A Load Balancer and API Gateway solve related but different problems.
+              
+              Load Balancer              
+                    Primarily answers:                    
+                              "Which healthy server should receive this request?"
+              
+              For example:
+                             Load Balancer
+                            /      |       \
+                           v       v        v
+                        Server1 Server2  Server3
+
+              API Gateway              
+                    Answers:                    
+                            "Is this request allowed, what API does it target, what policies apply, and which backend should handle it?"
+              
+              For example:
+                            Client
+                              |
+                              v
+                            API Gateway
+                              |
+                              +---- authentication
+                              |
+                              +---- authorization
+                              |
+                              +---- rate limit
+                              |
+                              +---- API version
+                              |
+                              +---- routing
+                              |
+                              v
+                            Backend
+
+The gateway is therefore more of an API policy and traffic-management layer, not merely a server-selection mechanism.
+
+Google's API Gateway documentation similarly describes the gateway as providing secure access 
+to backend services and handling routing/authentication before forwarding requests.
+===============================================================================================================================================
+3. What responsibilities should an API Gateway have?
+
+I would group them into six categories.
+
+                    API GATEWAY
+                         |
+       +-----------------+------------------+
+       |                 |                  |
+ Authentication     Traffic Control      Routing
+       |                 |                  |
+       +-----------------+------------------+
+                         |
+                  API Management
+                         |
+             +-----------+-----------+
+             |                       |
+          Security              Observability
+
+1.  Authentication:
+^^^^^^^^^^^^^^^^^^^
+
+                  Suppose the client sends:                  
+                          GET /users/123
+                          Authorization: Bearer eyJ...
+                  
+                  The gateway can validate the token.
+                  
+                  Conceptually:
+                                Client
+                                  |
+                                  | JWT
+                                  v
+                                API Gateway
+                                  |
+                                  | Is JWT valid?
+                                  |
+                                  +---- NO ----> 401
+                                  |
+                                  +---- YES
+                                         |
+                                         v
+                                      Backend
+
+Why do this at the gateway?
+        Because otherwise every microservice has to implement:
+                JWT parsing
+                signature verification
+                expiry validation
+                issuer validation
+                audience validation
+          independently.
+
+        Centralizing common authentication reduces duplication.
+
+        Google's API Gateway, for example, 
+        supports JWT validation and validates claims such as issuer/audience before forwarding requests.
+
+        But important L5 nuance
+              Authentication at the gateway does NOT mean the backend should blindly trust any request.
+
+        The backend should still enforce authorization for sensitive operations.
+
+For example:
+          Gateway:
+                  "Is this Alice?"
+          
+          Backend:
+                  "Is Alice allowed to delete this particular account?"
+
+Authentication and authorization are different.
+
+5. Authorization:
+   ^^^^^^^^^^^^^^ 
+          Suppose:          
+                  DELETE /users/123
+          
+          The gateway knows:
+                            user = Alice
+                            role = USER
+          
+                  But Alice might not have permission to delete arbitrary users.
+
+      So:
+          Authentication
+                ↓
+          Who are you?
+          
+                                Authorization
+                                      ↓
+                                What are you allowed to do?
+
+      Some coarse-grained authorization can happen at the gateway:
+      
+                      /admin/*
+      
+                    requires:  ADMIN
+      
+      But business-specific authorization should generally remain in the backend.
+
+6. Rate Limiting:
+   ^^^^^^^^^^^^^^^^
+              This is one of the most important API Gateway responsibilities.
+              
+              Imagine a client sends:    10,000 requests/sec
+                                          to:                                          
+                                          POST /payment
+                                          
+                                If we allow everything through:
+                                          Client
+                                            |
+                                            | 10,000 req/s
+                                            v
+                                          Gateway
+                                            |
+                                            | 10,000 req/s
+                                            v
+                                          Payment Service
+                                            |
+                                            X
+                                          OVERLOADED
+
+
+                      Instead:
+                                          Client
+                                            |
+                                            | 10,000 req/s
+                                            v
+                                          Gateway
+                                            |
+                                            | rate limit = 100 req/s
+                                            |
+                                            +---- 100 → Backend
+                                            |
+                                            +---- 9,900 → 429
+                      The backend is protected.
+===============================================================================================================================================
+7. Why rate limiting belongs near the edge
+
+                    Imagine the request travels:
+                    
+                                                Internet
+                                                   |
+                                                   v
+                                                Load Balancer
+                                                   |
+                                                   v
+                                                Gateway
+                                                   |
+                                                   v
+                                                20 microservices
+                                                   |
+                                                   v
+                                                Database
+                                                
+                      If we discover the client is abusing the system only at the database level, 
+                         we've already consumed a lot of resources.
+                                                
+                      We want to reject bad/excessive traffic as early as possible.                                          
+                                          Internet
+                                             |
+                                             v
+                                          Gateway
+                                             |
+                                             X reject
+
+                  That's much cheaper.
+
+Google's API Gateway documentation describes quotas as a mechanism to prevent excessive callers 
+from negatively affecting other API consumers and the overall health of the API
+===============================================================================================================================================
+8. But how do we rate-limit?
+
+                There are several algorithms.                
+                For L5, you should know at least:
+                
+                1.Fixed Window :
+                  **************
+                            For example:                            
+                                        100 requests / minute
+                            
+                            At:                            
+                                12:00:00 → 12:00:59                
+                            allow 100.
+                
+                            Then reset.
+
+Problem: boundary burst.
+        ^^^^^^^^^^^^^^^^^
+                A client could send:                
+                        100 requests at 12:00:59
+                        100 requests at 12:01:00
+                
+                That's 200 requests almost instantly.
+
+            2. Sliding Window:
+              ******************
+                              Instead of fixed calendar windows, look at a rolling period.
+                              
+                              For example:                              
+                                    Last 60 seconds.
+                              
+                              More accurate, but maintaining the request history is more expensive.
+
+
+
+              3.Token Bucket:
+              ****************
+                  This is particularly useful for APIs.
+                  
+                  Imagine a bucket containing tokens.                  
+                        Bucket capacity = 100
+                        Refill = 10 tokens/sec
+                  
+                  Every request consumes one token.
+
+                                Request
+                                   |
+                                   v
+                                Token available?
+                                   |
+                                 +---+---+
+                                 |       |
+                                YES      NO
+                                 |       |
+                                 v       v
+                                Allow   Reject
+
+                The nice property is that it allows controlled bursts.
+                
+                      For example:                
+                                  Bucket has 100 tokens
+                                  
+                                  Client sends 20 requests quickly
+                                  
+                                  20 tokens consumed
+                                  
+                                  80 remain
+                
+                Then tokens gradually refill.
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+
+===============================================================================================================================================
+
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
