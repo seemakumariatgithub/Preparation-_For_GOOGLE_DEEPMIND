@@ -741,19 +741,265 @@ Supporting Systems:
    Traces
 
 ===============================================================================================================================================
-
+24. But now I'll challenge you like an L5 interviewer
+            Question:            
+                        "Why are you putting a Global Load Balancer in front of the API Gateway?"
+            
+            Because the gateway itself is a distributed service.
+            
+            We don't want:            
+                        Internet
+                           |
+                           v
+                        ONE Gateway
+            
+            That's a single point of failure.
+            
+            Instead:            
+                         Global Routing
+                               |
+                   +-----------+-----------+
+                   |           |           |
+                   v           v           v
+                 Region A    Region B    Region C
+                   |           |           |
+                Gateway     Gateway     Gateway
+                Cluster     Cluster     Cluster
+            
+            Traffic can be routed to healthy regions.
 
 
 ===============================================================================================================================================
+25. What happens if Region A goes down?
+            
+            Suppose:            
+                        Region A ❌
+            
+            Global routing directs traffic to:            
+                        Region B
+                        Region C
+            
+            But now we need to ask:
+            
+            Is the backend data available in those regions?
+            
+            This is where API Gateway design connects to multi-region system design.
+            
+            The gateway itself cannot magically solve data consistency.
+            
+            You need to consider:            
+                        replicated databases
+                        data locality
+                        failover
+                        DNS/traffic routing
+                        RPO
+                        RTO
+            
+            That's exactly the kind of follow-up an L5 interviewer may use.
 
+===============================================================================================================================================
+26. Should Gateway contain business logic?
+            
+            No.
+            
+            This is one of the most important boundaries.
+            
+            Gateway can do:            
+                              Authentication
+                              Rate limiting
+                              Routing
+                              Basic validation
+                              API policies
+                              Observability
+            
+            But it should NOT do:            
+                              Calculate loan eligibility
+                              Calculate payment settlement
+                              Determine recommendation
+                              Process order business rules
+            
+            Why?
+            
+            Because otherwise:            
+                        Gateway
+                            |
+                            +--> business logic 1
+                            +--> business logic 2
+                            +--> business logic 3
+                            +--> business logic 4
+                        
+            becomes a giant distributed monolith.
+            
+            The gateway should remain relatively thin.
 
 
 ===============================================================================================================================================
-
+27. Should every internal service call go through the API Gateway?
+            
+            Usually no.
+            
+            This is another excellent interview distinction.
+            
+            The API Gateway is primarily for north-south traffic:            
+                              External clients
+                                     ↓
+                                  Gateway
+                                     ↓
+                              Internal services
+            
+            For east-west traffic:            
+                              Service A
+                                  ↓
+                              Service B
+                                  ↓
+                              Service C
+            
+            you may use:            
+                        service discovery
+                        internal load balancing
+                        service mesh
+                        mTLS
+                        direct service-to-service communication
+            
+            depending on the architecture.
+            
+            You don't want every internal call unnecessarily passing through a public-facing gateway.
 
 
 ===============================================================================================================================================
+28. API Gateway vs Reverse Proxy
+
+You asked about Reverse Proxy in your Week 15 topics, so this distinction is important.
+
+Reverse Proxy
+
+Mainly:
+
+Client
+  ↓
+Reverse Proxy
+  ↓
+Backend
+
+It can provide:
+
+TLS termination
+routing
+load balancing
+caching
+API Gateway
+
+Adds API-specific capabilities:
+
+Client
+  ↓
+API Gateway
+  ↓
+Backend
+
+such as:
+
+authentication
+authorization policies
+quotas
+rate limiting
+API versioning
+API lifecycle management
+analytics
+request transformation
+
+So:
+
+An API Gateway can be viewed as a specialized, API-aware reverse-proxy layer with additional policy and management capabilities.
+
+Don't treat them as completely unrelated technologies.
+
+=================================================================================================================================================
+
+29. API Gateway vs Load Balancer
+
+Another interview favorite.
+
+|                       | Load Balancer      | API Gateway        |
+| --------------------- | ------------------ | ------------------ |
+| Main goal             | Distribute traffic | Manage APIs        |
+| Routing               | Yes                | Yes                |
+| Health checks         | Yes                | Usually/integrated |
+| Authentication        | Limited/dependent  | Strong capability  |
+| Rate limiting         | Possible           | Core capability    |
+| API versioning        | Not primary        | Yes                |
+| Business/API policies | Limited            | Strong             |
+| Service abstraction   | Limited            | Strong             |
+| Observability         | Yes                | API-aware          |
+
+The exact capabilities depend on the implementation, but this conceptual distinction is what matters.
+
+
+===================================================================================================================================================
 
 
 
-===============================================================================================================================================
+===================================================================================================================================================
+
+
+
+===================================================================================================================================================
+
+
+
+
+===================================================================================================================================================
+
+
+
+
+===================================================================================================================================================
+
+
+
+
+===================================================================================================================================================
+
+
+
+
+===================================================================================================================================================
+
+
+
+===================================================================================================================================================
+
+
+
+
+===================================================================================================================================================
+
+
+
+
+===================================================================================================================================================
+
+
+
+
+===================================================================================================================================================
+
+
+
+
+===================================================================================================================================================
+
+
+
+
+===================================================================================================================================================
+
+
+
+
+===================================================================================================================================================
+
+
+
+
+===================================================================================================================================================
