@@ -44,24 +44,92 @@ At a high level:
                                     │
                     ┌───────────────┼────────────────┐
                     ▼               ▼                ▼      
-
-
-
-
-
-PostgreSQL       Redis           Kafka/Event Bus
-
+                  PostgreSQL       Redis           Kafka/Event Bus
 
 
 ====================================================================================================================================
+The key idea is:
+            The chatbot should not know the business. 
+            The chatbot platform provides capabilities; 
+            the specific application provides:
+                              - knowledge, 
+                              - tools, 
+                              - policies 
+                              - and configuration.
 
 
-
-
+For Example :
+                Generic Chatbot Platform
+                          │
+                          ├── Banking Bot
+                          │      ├── Banking knowledge
+                          │      ├── Account API
+                          │      ├── Transaction API
+                          │      └── Banking policies
+                          │
+                          ├── Insurance Bot
+                          │      ├── Insurance knowledge
+                          │      ├── Policy API
+                          │      ├── Claim API
+                          │      └── Insurance policies
+                          │
+                          └── HR Bot
+                                 ├── HR documents
+                                 ├── Leave API
+                                 ├── Payroll API
+                                 └── HR policies
 
 ====================================================================================================================================
+This is the architecture I'd suggest for your Google DeepMind L5 system-design preparation as well, 
+because it gives you opportunities to discuss API design, distributed systems, RAG, LLM orchestration,
+caching, security, observability, scalability, failure handling and extensibility.
+====================================================================================================================================
+How I suggest we learn/build it
 
+      Don't jump directly into code.
+      
+      We'll build it in 8 stages, from an extremely simple chatbot to a production-grade generic platform.
+      
+            Stage 1 — Understand the basic chatbot
+            Stage 2 -
+            Stage 3 -
+            Stage 4 -
+            Stage 5 -
+            Stage 6 -
+            Stage 7 -
+            Stage 8 -
 
+====================================================================================================================================
+Stage 1 — Understand the basic chatbot
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   
+          First we'll build:
+                              Client
+                                 │
+                                 ▼
+                              Chat API
+                                 │
+                                 ▼
+                              LLM
+                                 │
+                                 ▼
+                              Response
+
+Example:
+
+POST :  /api/v1/chat
+Request:
+          {
+            "conversationId": "123",
+            "message": "What is the capital of France?"
+          }
+Response: 
+          {
+            "conversationId": "123",
+            "message": "The capital of France is Paris."
+          }
+
+This teaches us the fundamental request/response flow.
+====================================================================================================================================
 
 
 
