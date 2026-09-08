@@ -91,9 +91,9 @@ How I suggest we learn/build it
       We'll build it in 8 stages, from an extremely simple chatbot to a production-grade generic platform.
       
             Stage 1 — Understand the basic chatbot
-            Stage 2 -
-            Stage 3 -
-            Stage 4 -
+            Stage 2 - Introduce conversation memory
+            Stage 3 - Make it generic
+            Stage 4 - Add RAG
             Stage 5 -
             Stage 6 -
             Stage 7 -
@@ -130,24 +130,185 @@ Response:
 
 This teaches us the fundamental request/response flow.
 ====================================================================================================================================
+Stage 2 — Introduce conversation memory
 
+A real chatbot needs context.
+Suppose the user says:
 
+                    User:
+                    What is the capital of France?
+                    
+                    Bot:
+                    Paris.
+                    
+                    User:
+                    What is its population?
 
+The second question is meaningless to the LLM unless we provide conversation context.
+
+So we'll introduce:
+             ┌───────────────┐
+             │ Conversation  │
+             │   Service     │
+             └───────┬───────┘
+                     │
+                     ▼
+               Conversation DB
+
+Conversation:
+              conversationId = abc123
+              
+              USER:
+              What is the capital of France?
+              
+              ASSISTANT:
+              Paris.
+              
+              USER:
+              What is its population?
+
+The orchestration layer constructs the LLM request:
+
+              System prompt
+              +
+              Conversation history
+              +
+              Current user message
 ====================================================================================================================================
+Stage 3 — Make it generic
+          ^^^^^^^^^^^^^^^^^^
 
+        This is the most important architectural step.
+        
+        Instead of writing: BankingChatbotService
+        we create: ChatbotService and define a generic contract.
+        
+        For example:        
+                    public interface Chatbot {
+                    
+                        ChatResponse chat(ChatRequest request);
+                    }
+        
+        Then:
+                  Chatbot
+                     │
+         ┌───────────┼────────────┐
+         │           │            │
+     GenericBot   BankingBot   InsuranceBot
 
+      But even this isn't ideal.
+      
+      We don't want to create a new Java class for every customer.
+      
+      Instead, we'll make the chatbot configuration-driven.
+    Something like:
+              {
+                "botId": "banking-assistant",
+                "model": "some-llm",
+                "systemPrompt": "...",
+                "knowledgeBase": "banking-documents",
+                "tools": [
+                  "getAccountBalance",
+                  "getTransactions"
+                ]
+              }
 
-
-
-
+      Now the platform dynamically creates the chatbot behavior.
+      
+      That is what makes it truly reusable.
 ====================================================================================================================================
+Stage 4 — Add RAG
+
+      Now the chatbot becomes useful for enterprise applications.
+      
+      Suppose an insurance company has:
+                  1000 PDF documents
+                  500 policy documents
+                  claim guidelines
+                  customer manuals
+                  regulations
+                  FAQ documents
+
+We don't want to send all of these documents to the LLM.
+
+Instead:
+              Documents
+                 │
+                 ▼
+              Document ingestion
+                 │
+                 ▼
+              Chunking
+                 │
+                 ▼
+              Embeddings
+                 │
+                 ▼
+              Vector Database
+
+At runtime:
+            User question
+                  │
+                  ▼
+            Create embedding
+                  │
+                  ▼
+            Vector search
+                  │
+                  ▼
+            Relevant documents
+                  │
+                  ▼
+                  LLM
+                  │
+                  ▼
+                Answer
 
 
 
+This is Retrieval Augmented Generation (RAG).
 
-
+  Architecture:
+    
+                         ┌───────────────┐
+                         │     User      │
+                         └───────┬───────┘
+                                 │
+                                 ▼
+                           Chat API
+                                 │
+                                 ▼
+                         Orchestrator
+                                 │
+                       ┌─────────┴─────────┐
+                       │                   │
+                       ▼                   ▼
+                  Conversation          RAG Engine
+                     Memory                │
+                                           ▼
+                                      Vector DB
+                                           │
+                                           ▼
+                                      Relevant Docs
+                                           │
+                       ┌───────────────────┘
+                       ▼
+                      LLM
+                       │
+                       ▼
+                    Response
 ====================================================================================================================================
-
+Stage 5 — Tool calling
+          ^^^^^^^^^^^^^^^
+        This is where the chatbot becomes an agent-like enterprise assistant.
+        
+        Imagine a banking chatbot.
+        
+            User: What is my account balance?
+        
+        The LLM shouldn't invent the balance.
+        
+          Instead:
 
 
 
