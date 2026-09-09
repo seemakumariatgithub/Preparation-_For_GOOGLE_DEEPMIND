@@ -1,0 +1,154 @@
+But your next level is:
+
+Given a problem, why did you select this algorithm?
+
+That's what NVIDIA/Google-style interviews can test.
+
+For every problem, train yourself to answer:
+
+1. What is the brute force solution?
+2. What makes it inefficient?
+3. What property can I exploit?
+4. Which data structure helps?
+5. Which algorithm fits that property?
+6. Why is another algorithm worse?
+
+For example:
+          
+          Problem
+             ↓
+          Identify structure
+             ↓
+          Is it sorted?
+             ↓
+          Binary Search
+          
+          Repeated lookup?
+             ↓
+          HashMap
+          
+          Contiguous range?
+             ↓
+          Sliding Window
+          
+          Explore all combinations?
+             ↓
+          Backtracking
+          
+          Optimal substructure?
+             ↓
+          Dynamic Programming
+          
+          Shortest path?
+             ↓
+          BFS / Dijkstra
+          
+          Dependencies?
+             ↓
+          Topological Sort
+          
+          Connectivity?
+             ↓
+         Union Find
+===================================================================================================================================================
+5. Build an "Algorithm Selection Framework"
+
+I specifically want you to create your own mental cheat sheet.
+
+For example:
+
+| Problem characteristic   | Likely technique     |
+| ------------------------ | -------------------- |
+| Fast lookup              | HashMap/HashSet      |
+| Sorted search            | Binary Search        |
+| Two sorted sequences     | Two pointers         |
+| Contiguous range         | Sliding Window       |
+| Subarray sum             | Prefix Sum           |
+| Top K                    | Heap                 |
+| Dependencies             | Topological Sort     |
+| Shortest unweighted path | BFS                  |
+| Shortest weighted path   | Dijkstra             |
+| All combinations         | Backtracking         |
+| Overlapping subproblems  | DP                   |
+| Connected components     | DFS/BFS/Union Find   |
+| Range queries            | Segment Tree/Fenwick |
+| Scheduling               | Heap/Greedy          |
+| Interval overlap         | Sorting + Greedy     |
+| Prefix matching          | Trie                 |
+
+
+
+
+===================================================================================================================================================
+Step 3 — Identify reusable patterns
+
+For example:
+
+High traffic
+     ↓
+Load balancing
+
+Asynchronous processing
+     ↓
+Queue
+
+Repeated computation
+     ↓
+Cache
+
+Independent scaling
+     ↓
+Microservices
+
+Large dataset
+     ↓
+Partitioning
+
+Machine failure
+     ↓
+Replication
+
+Long-running work
+     ↓
+Async workflow
+
+GPU workload
+     ↓
+GPU scheduler / Kubernetes
+
+Step 4 — Choose technology
+
+Only now:
+
+API → Spring Boot / Go
+Queue → Kafka
+Cache → Redis
+DB → PostgreSQL
+Container → Docker
+Orchestration → Kubernetes
+Cloud → GCP
+Monitoring → Prometheus/Grafana
+ML → Python/PyTorch
+
+This is the thinking style I want you to develop.
+
+===================================================================================================================================================
+
+
+
+
+===================================================================================================================================================
+
+
+
+
+===================================================================================================================================================
+
+
+
+
+===================================================================================================================================================
+
+
+
+===================================================================================================================================================
