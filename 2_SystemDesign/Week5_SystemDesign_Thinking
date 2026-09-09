@@ -225,7 +225,57 @@ This becomes your architecture pattern library.
 
 
 ============================================================================================================================
+4. Master the core distributed-system concepts
 
+I would make these your foundation layer.
+
+A. Scalability:
+              Understand:              
+                            Vertical scaling
+                            Horizontal scaling
+                            Load balancing
+                            Partitioning
+                            Sharding
+                            Replication
+                            Caching
+                            CDN
+                            Stateless services
+B. Consistency:
+              
+              Understand:              
+                            Strong consistency
+                            Eventual consistency
+                            Read-your-writes
+                            Monotonic reads
+                            Quorum
+
+Then understand why distributed systems often have to trade consistency for availability/latency.
+
+C. Reliability:
+              Understand:
+                            Timeout
+                            Retry
+                            Exponential backoff
+                            Circuit breaker
+                            Bulkhead
+                            Idempotency
+                            Failover
+                            Replication
+                            Health checks
+                            Dead-letter queues
+
+D. Distributed coordination:
+                     Eventually learn:
+                            Leader election
+                            Distributed locks
+                            Logical clocks
+                            Consensus
+                            Raft
+                            Paxos — conceptual level
+
+You don't need to implement Paxos from scratch initially.
+
+You need to understand what problem consensus solves.
 ==============================================================================================================================
 
 ================================================================================================================================
