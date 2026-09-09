@@ -102,26 +102,134 @@ That is the skill you need.
 3. Develop a repeatable problem-solving framework
 
 For every system-design problem, use this sequence.
-
+=========================================================================================================================
 Step 1 — Requirements
-
+         ^^^^^^^^^^^^
 Separate:
 
-Functional
-What does the system do?
-Non-functional
-Scale
-Latency
-Availability
-Consistency
-Durability
-Security
-Cost
+       Functional: 
+              What does the system do?
+
+       Non-functional:
+                     Scale
+                     Latency
+                     Availability
+                     Consistency
+                     Durability
+                     Security
+                     Cost
 Step 2 — Estimate scale
 
-Suppose:
+       Suppose:
+                     100 million users
+                     10 notifications/user/day
+       
+       That's: 1 billion notifications/day
 
-100 million users
-10 notifications/user/day
+       Approximately:       
+                     1,000,000,000 / 86,400
+                     ≈ 11,574 requests/sec
+       
+       But average traffic isn't enough.
+       
+       Suppose peak is 10×:  ≈ 115K requests/sec
 
-That's:
+       Now your design changes.
+       
+       This is why back-of-the-envelope calculations are important.
+       
+Learn to estimate:
+       
+       QPS
+       storage
+       bandwidth
+       memory
+       cache size
+       partitions
+       replicas
+
+
+=========================================================================================================================
+=============
+4. Then decompose the system
+
+For example:
+                    Client
+                       │
+                       ▼
+                  API Gateway
+                       │
+                       ▼
+                Notification API
+                       │
+              ┌────────┴────────┐
+              │                 │
+              ▼                 ▼
+          User DB           Kafka
+                                │
+                    ┌───────────┼───────────┐
+                    ▼           ▼           ▼
+                 Email        SMS          Push
+                 Worker       Worker        Worker
+                    │           │           │
+                    ▼           ▼           ▼
+                 Provider     Provider     Provider
+
+=========================================================================================================================
+5. Learn to identify reusable distributed-system pattern
+       This is directly related to the requirement you mentioned earlier about:
+              breaking complex problems into manageable sub-problems and reusing solutions effectively.
+
+Build a mental library of patterns.
+
+              Traffic problem
+                     → Load balancer
+              
+              Repeated expensive computation
+                     → Cache
+              
+              Large dataset
+                     → Partitioning/sharding
+              
+              Independent asynchronous work
+                     → Queue/event streaming
+              
+              Slow downstream service
+                     → Async processing
+              
+              Failure-prone dependency
+                     → Timeout + retry + circuit breaker
+              
+              Duplicate requests
+                     → Idempotency
+              
+              Database + event consistency
+                     → Transactional outbox
+              
+              Independent service scaling
+                     → Microservices
+              
+              Read-heavy workload
+                     → Cache/read replicas
+              
+              High availability
+                     → Replication
+              
+              Ordered processing
+                     → Partition/key-based ordering
+              
+              Rate control
+                     → Rate limiter
+
+This becomes your architecture pattern library.
+
+
+============================================================================================================================
+
+==============================================================================================================================
+
+================================================================================================================================
+
+
+==========================================================================================================
+
