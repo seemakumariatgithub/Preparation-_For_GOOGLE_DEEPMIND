@@ -277,9 +277,73 @@ You don't need to implement Paxos from scratch initially.
 
 You need to understand what problem consensus solves.
 ==============================================================================================================================
+5. Kafka should become one of your strongest technologies
 
+Since you're already working with microservices, Kafka is a natural next step.
+
+Don't stop at:
+                     Producer
+                     Consumer
+                     Topic
+                     Partition
+
+Go deeper:
+              Partitioning
+              Consumer groups
+              Ordering
+              Replication
+              ISR
+              Leader election
+              Offset management
+              Rebalancing
+              Delivery semantics
+              At-least-once
+              Exactly-once
+              Idempotency
+              DLQ
+              Schema evolution
+              Outbox pattern
+
+Then practice designing:
+
+"How would you process 500K events/sec?"
+
+That's much more valuable than simply knowing Kafka APIs.
 ================================================================================================================================
+1. Master concurrency in Java
 
+This is an area where your Java 21 background gives you a real advantage.
+
+Go deep into:
+
+Threads
+Executors
+Thread pools
+CompletableFuture
+Virtual threads
+Locks
+ReadWriteLock
+Atomic variables
+ConcurrentHashMap
+BlockingQueue
+Semaphore
+CountDownLatch
+CyclicBarrier
+
+Then understand:
+
+Race condition
+Deadlock
+Starvation
+Livelock
+Contention
+Backpressure
+
+And always ask:
+
+What happens when 100,000 requests arrive simultaneously?
+
+That question connects Java concurrency to distributed systems.
 
 ==========================================================================================================
 
