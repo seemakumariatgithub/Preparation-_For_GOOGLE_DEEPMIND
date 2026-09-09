@@ -431,5 +431,205 @@ Now we turn the prototype into something that can handle millions of conversatio
                Response
 
 ====================================================================================================================================
+Infrastructure:
+                    Load Balancer
+                          │
+                    API Gateway
+                          │
+                 ┌────────┴────────┐
+                 │                 │
+             Chat Pod 1        Chat Pod N
+                 │                 │
+                 └────────┬────────┘
+                          │
+                       Redis
+                          │
+                    PostgreSQL
+                          │
+                        Kafka
+
+====================================================================================================================================
+Stage 8 — Multi-tenant chatbot platform
+
+This is the final level.
+
+Imagine your platform has:
+            Customer A → Banking chatbot
+            Customer B → Insurance chatbot
+            Customer C → Telecom chatbot
+            Customer D → HR chatbot
 
 
+All use the same infrastructure.
+
+We introduce:
+              tenantId
+              botId
+              conversationId
+              userId
+For example:
+            {
+              "tenantId": "icici",
+              "botId": "banking-assistant",
+              "conversationId": "abc123",
+              "userId": "user456",
+              "message": "Show my last transactions"
+            }
+
+Then:             
+              Chatbot Platform
+                       │
+             ┌─────────┼─────────┐
+             │         │         │
+           Tenant A  Tenant B  Tenant C
+             │         │         │
+           Bot A     Bot B     Bot C
+
+This is essentially a Chatbot-as-a-Platform / Chatbot-as-a-Service architecture.
+This is Dependency Inversion + Strategy pattern + Adapter pattern working together.
+
+That will be especially useful for your L5 interview preparation.
+====================================================================================================================================
+Technology stack I'd recommend for you
+
+Since you're already strong in Java/Spring:
+
+Backend
+Java 21
+Spring Boot 3.x
+Spring WebFlux / MVC
+Spring Security
+JPA/Hibernate
+Databases
+PostgreSQL
+Redis
+Messaging
+Kafka
+RAG
+
+Start with:
+
+PostgreSQL + pgvector
+
+Later understand:
+
+OpenSearch
+Pinecone
+Weaviate
+LLM abstraction
+
+Don't tightly couple your application to one provider.
+
+Create:
+
+LLMProvider
+
+and implement providers behind it.
+
+API
+REST
+SSE
+Deployment
+
+Eventually:
+
+Docker
+Kubernetes
+
+====================================================================================================================================
+
+One very important design principle
+
+Don't start with microservices.
+
+Start with a modular monolith.
+
+For example:
+
+chatbot-platform
+│
+├── api
+│
+├── conversation
+│
+├── orchestration
+│
+├── llm
+│
+├── rag
+│
+├── tools
+│
+├── security
+│
+├── configuration
+│
+└── observability
+
+Initially:
+
+                ONE APPLICATION
+                     │
+        ┌────────────┼────────────┐
+        │            │            │
+   Conversation     RAG         Tools
+
+Once we identify actual scaling boundaries:
+
+Once we identify actual scaling boundaries:
+
+Chat Service
+Conversation Service
+RAG Service
+Tool Service
+LLM Gateway
+Config Service
+
+become separate services.
+
+This is much better architecture than starting with 15 microservices simply because we're building an "AI platform."
+
+
+====================================================================================================================================
+
+
+
+
+
+====================================================================================================================================
+
+
+
+
+====================================================================================================================================
+
+
+
+
+
+====================================================================================================================================
+
+
+
+
+====================================================================================================================================
+
+
+
+
+======================================================================================================================================
+
+
+
+
+==================================================================================================================================
+
+
+
+
+
+
+
+
+
+====================================================================================================================================
