@@ -18,3 +18,54 @@
 | Permutations            | Choose unused element + `used[]`     |
 | Combination Sum         | Reuse allowed → recurse with `i`     |
 | Combination Sum II      | No reuse → recurse with `i+1`        |
+
+
+================================================================================================================================
+Your current learning map
+
+
+FOUNDATION
+   │
+   ├── Big-O
+   ├── Arrays
+   ├── HashMap / HashSet
+   ├── Two Pointers
+   ├── Sliding Window
+   ├── Prefix Sum
+   └── Binary Search
+          │
+          ↓
+ADVANCED ARRAY PATTERNS
+   │
+   └── Monotonic Stack
+          │
+          ↓
+RECURSION
+   │
+   ├── Base case
+   ├── State
+   ├── Recursion tree
+   └── Complexity
+          │
+          ↓
+BACKTRACKING
+   │
+   ├── Subsets I
+   ├── Subsets II
+   ├── Permutations
+   ├── Combination Sum
+   └── Combination Sum II
+          │
+          ↓
+DP
+   │
+   ├── Climbing Stairs
+   ├── House Robber
+   ├── Knapsack
+   └── Target Sum
+
+
+========================================================================================================================================
+
+
+
