@@ -1,0 +1,20 @@
+27. The Most Important Cheat Sheet
+
+| Problem pattern         | Key state/idea                       |
+| ----------------------- | ------------------------------------ |
+| Two Sum                 | HashMap of seen values               |
+| Duplicate detection     | HashSet                              |
+| Sliding Window          | left/right + maintained window state |
+| Range Sum               | Prefix Sum                           |
+| Count subarrays sum K   | Prefix Sum + frequency map           |
+| Longest subarray        | Prefix Sum + earliest index          |
+| Binary Search           | Monotonic ordered search space       |
+| Binary Search on Answer | Monotonic feasibility                |
+| Next Greater            | Monotonic decreasing stack           |
+| Next Smaller            | Monotonic increasing stack           |
+| Largest Rectangle       | Increasing stack + boundaries        |
+| Subsets I               | Include / exclude                    |
+| Subsets II              | Sort + skip duplicate siblings       |
+| Permutations            | Choose unused element + `used[]`     |
+| Combination Sum         | Reuse allowed → recurse with `i`     |
+| Combination Sum II      | No reuse → recurse with `i+1`        |
