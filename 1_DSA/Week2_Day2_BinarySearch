@@ -795,10 +795,84 @@ class Solution {
 
 
 ==================================================================================================================================================================
+The common pattern
+
+| Problem                 | What are we optimizing?  | Binary-search variable       | Feasibility question                                             |
+| ----------------------- | ------------------------ | ---------------------------- | ---------------------------------------------------------------- |
+| **Koko Eating Bananas** | Minimum eating speed     | Speed                        | Can Koko finish within `h` hours?                                |
+| **Aggressive Cows**     | Maximum minimum distance | Distance                     | Can we place `m` cows with at least this distance?               |
+| **Allocate Books**      | Minimum maximum pages    | Maximum pages per student    | Can we allocate books so no student gets more than this?         |
+| **Painter's Partition** | Minimum total time       | Maximum workload per painter | Can we divide boards so no painter gets more than this workload? |
+
+
+| Problem                 | Optimization             | Search variable | `low`         | `high`          | Feasibility     | Search direction |
+| ----------------------- | ------------------------ | --------------- | ------------- | --------------- | --------------- | ---------------- |
+| **Koko**                | Minimum speed            | Eating speed    | `1`           | `max(piles)`    | Hours `<= h`    | Minimum feasible |
+| **Aggressive Cows**     | Maximum minimum distance | Distance        | `1`           | `maxPos-minPos` | Cows `>= m`     | Maximum feasible |
+| **Allocate Books**      | Minimum maximum pages    | Page limit      | `max(books)`  | `sum(books)`    | Students `<= m` | Minimum feasible |
+| **Painter's Partition** | Minimum maximum workload | Work/time limit | `max(boards)` | `sum(boards)`   | Painters `<= k` | Minimum feasible |
 
 
 
 
+
+
+
+==================================================================================================================================================================
+15. The deeper pattern you should learn
+
+                    Don't memorize:                    
+                              "Koko uses binary search."
+
+Instead, ask these four questions whenever you see an optimization problem:
+                    Question 1 — What am I optimizing?
+                              Koko → speed
+                              Cows → distance
+                              Books → maximum pages
+                              Painters → maximum workload
+                              Question 2 — Can I guess a candidate answer?
+
+                    For example:                              
+                              Koko: speed = 5
+                              Cows: distance = 10
+                              Books: max pages = 100
+                              Painter: max workload = 200
+                              Question 3 — Can I efficiently check whether that candidate works?
+
+                    This is the feasibility function.                    
+                              canFinish(speed)
+                              canPlace(distance)
+                              canAllocate(pageLimit)
+                              canPaint(workLimit)
+                              Question 4 — Is feasibility monotonic?
+
+                    If yes, binary search is likely applicable.
+
+
+
+
+==================================================================================================================================================================
+
+The two patterns
+                    Maximum feasible
+                              Aggressive Cows
+                                        YES YES YES YES | NO NO NO
+                                                         ↑
+                                                  maximum feasible
+                    Minimum feasible
+                              Koko / Books / Painter                              
+                                        NO NO NO NO | YES YES YES YES
+                                                     ↑
+                                               minimum feasible                    
+
+That distinction is the main concept I want you to carry forward from these problems.
+
+If you understand that, then Koko, Magnetic Force/Aggressive Cows, Allocate Books, Painter's Partition, Ship Packages, 
+and similar problems start looking like the same problem wearing different clothes.
+
+
+
+==================================================================================================================================================================
 
 
 
@@ -808,11 +882,12 @@ class Solution {
 
 
 
-
 ==================================================================================================================================================================
 
 
 
+
+==================================================================================================================================================================
 
 
 
