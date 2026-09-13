@@ -467,9 +467,8 @@ class Solution {
         }
         while(left<right){
         int mid=left+(right-left)/2;
-        long hour=totalHour(piles,mid);
 
-        if(hour<=h){
+        if(canEat(piles,h,mid)){
             right=mid;
         }else{
             left=mid+1;
@@ -478,12 +477,12 @@ class Solution {
         return left;
     }
 
-    private long totalHour(int[] piles, int midSpeed){
-        long totalHour=0;
+    private boolean canEat(int[] piles, int hour,int midSpeed){
+        int totalHour=0;
         for(int pile:piles){
             totalHour+=(pile+midSpeed-1)/midSpeed;
         }
-        return totalHour;
+        return totalHour<=hour;
     }
 }
 
