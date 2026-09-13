@@ -501,47 +501,55 @@ CAPACITY TO SHIP PACKAGE:
 class Solution {
     public int shipWithinDays(int[] weights, int days) {
 
-        int left=0;
-        int right=0;
+        int left=0, right=0;
 
-        for(int weight: weights){
-            left=Math.max(left,weight);
-            right+=weight;
+        for(int weigh: weights){
+            left=Math.max(left,weigh);
+            right+=weigh;
         }
 
         while(left<right){
             int midCapacity=left+(right-left)/2;
 
-            int daysAsPerMidCapacity=calculateDays(midCapacity,weights);
-
-            if(daysAsPerMidCapacity<=days){
+            if(canShip(weights,days,midCapacity)){
                 right=midCapacity;
             }else{
                 left=midCapacity+1;
-            }            
+            }
+
         }
-        return left;
         
+        return left;
     }
 
-    private int calculateDays(int midCapacity,int[] weights){
+    private boolean canShip(int[] weights, int days, int midCapacity){
 
-        int days=1;
-        int currentLoad=0;
-        for(int weight:weights){
-            if(currentLoad+weight<=midCapacity){
-                currentLoad+=weight;
+        int totalDays=1;
+        int currentWeight=0;
+
+        for(int w : weights){
+            if(currentWeight + w <= midCapacity){
+                currentWeight+=w;
             }else{
-                days++;
-                currentLoad=weight;
+                totalDays++;
+                currentWeight=w;
             }
+
         }
-        return days;
+        return totalDays<=days;
     }
 }
 
+8. So what is the role of each constraint?
 
-
+| Constraint                     | What it tells us                     | Why useful                                        |
+| ------------------------------ | ------------------------------------ | ------------------------------------------------- |
+| `days >= 1`                    | At least one shipping day            | Problem is meaningful                             |
+| `days <= weights.length`       | Days don't exceed number of packages | Bounds the problem                                |
+| `weights.length <= 50,000`     | At most 50K packages                 | `O(n)` feasibility check is efficient             |
+| `weights[i] >= 1`              | Every package has positive weight    | Makes greedy capacity calculation straightforward |
+| `weights[i] <= 500`            | Each package max 500                 | Helps bound total weight                          |
+| `n <= 50,000`, `weight <= 500` | `sum <= 25,000,000`                  | Gives a safe maximum capacity within `int`        |
 
 ================================================================================================================================================================
 
