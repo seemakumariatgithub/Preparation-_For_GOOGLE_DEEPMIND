@@ -1598,6 +1598,249 @@ Here, the target/remaining sum becomes part of our state.
 
 
 ============================================================================================================================================
+Next will be :
+             Combination Sum II
+                     ↓
+             Generate Parentheses
+                     ↓
+             Letter Combinations
+                     ↓
+             Palindrome Partitioning
+                     ↓
+             Word Search
+                     ↓
+             N-Queens
+                     ↓
+             Backtracking + Memoization
+                     ↓
+             DP state design
+                     ↓
+             1D / 2D DP
+                     ↓
+             Knapsack / Target Sum / related patterns
+             
+
+
+============================================================================================================================================
+Problem — Combination Sum II
+
+        Given:
+        
+        candidates = [10,1,2,7,6,1,5]
+        target = 8
+        
+        Return all unique combinations where the chosen numbers sum to 8.
+
+
+   Your first L5 question:   
+        Before coding, tell me what changes from our Combination Sum solution.        
+        Specifically, answer these three:        
+             1. Should we recurse with i or i + 1, and why?             
+             2. Why do we need to sort the candidates?             
+             3. Where would you apply the duplicate check, and what condition would you use?             
+        Take it one point at a time and explain your reasoning naturally.
+
+
+
+
+. i + 1 — correct
+
+Your reasoning is right:
+
+    Because each input occurrence can be used at most once, after choosing candidates[i], the recursive call must begin at i + 1.    
+    So:     backtrack(candidates, i + 1, ...)
+    
+    This is different from Combination Sum:    
+         Combination Sum   → i       → reuse allowed
+         Combination Sum II → i + 1   → no reuse
+
+   2. Why sorting?
+    
+    You said sorting lets us check duplicates. Correct, but the deeper reason is:    
+       Sorting makes equal values adjacent, which allows us to identify duplicate choices at the same recursion level.
+    
+    Without sorting, this condition would not reliably work:    
+            nums[i] == nums[i - 1]
+    
+    because equal values might be separated.
+
+3. Duplicate check — one important detail:
+     You correctly said it belongs inside the loop.
+     
+         But don't just use:     
+                          if (nums[i] == nums[i - 1])
+     
+     We need:     
+                    if (i > start && nums[i] == nums[i - 1]) {
+                        continue;
+                    }
+     
+     The i > start part means:     
+                      Skip the duplicate only when it is a sibling choice at the same recursion depth.
+     
+     We still need to permit two 1s to appear in the same combination.
+============================================================================================================================================
+Now let's derive the full algorithm:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+                   The recursive state is:     (start, remainingTarget, path)
+                   
+                   At every level:                   
+                                    for i = start → end
+                                    
+                                        skip duplicate sibling
+                                    
+                                        if candidates[i] > remainingTarget
+                                            break
+                                    
+                                        choose candidates[i]
+                                    
+                                        recurse with i + 1
+                                    
+                                        undo
+    And the stopping conditions:    
+                                    if (remainingTarget == 0) {
+                                        result.add(new ArrayList<>(path));
+                                        return;
+                                    }
+    
+    Because we've formed a valid combination.
+     And because candidates are positive:     
+                                        if (candidates[i] > remainingTarget) {
+                                            break;
+                                        }     
+     because all later sorted candidates will also be too large.
+============================================================================================================================================
+Now let's complete Combination Sum II
+
+Here is the full Java implementation:
+
+
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+class Solution {
+
+    public List<List<Integer>> combinationSum2(int[] candidates, int target) {
+
+        List<List<Integer>> result = new ArrayList<>();
+
+        Arrays.sort(candidates);
+
+        backtrack(candidates, 0, target, new ArrayList<>(), result);
+
+        return result;
+    }
+
+    private void backtrack(
+            int[] candidates,
+            int start,
+            int remainingTarget,
+            List<Integer> path,
+            List<List<Integer>> result) {
+
+        if (remainingTarget == 0) {
+            result.add(new ArrayList<>(path));
+            return;
+        }
+
+        for (int i = start; i < candidates.length; i++) {
+
+            // Skip duplicate choices at the same recursion level.
+            if (i > start && candidates[i] == candidates[i - 1]) {
+                continue;
+            }
+
+            // Since array is sorted, all later values are also too large.
+            if (candidates[i] > remainingTarget) {
+                break;
+            }
+
+            // Choose
+            path.add(candidates[i]);
+
+            // No reuse: move to next index.
+            backtrack(
+                    candidates,
+                    i + 1,
+                    remainingTarget - candidates[i],
+                    path,
+                    result
+            );
+
+            // Undo
+            path.remove(path.size() - 1);
+        }
+    }
+}
+
+
+Notice the four major rules
+          1. Sort
+          2. Skip duplicate siblings
+          3. Recurse with i + 1
+          4. Backtrack with choose → recurse → undo
+
+Those four rules are the essence of Combination Sum II.
+============================================================================================================================================
+Compare all three problems now
+
+This comparison is extremely important for your DSA pattern recognition:
+
+
+| Problem            | Reuse same element? | Duplicates in input? | Recursive index |
+| ------------------ | ------------------- | -------------------- | --------------- |
+| Subsets I          | N/A                 | No                   | `i + 1`         |
+| Subsets II         | N/A                 | Yes                  | `i + 1`         |
+| Combination Sum    | ✅ Yes              | Usually no           | `i`             |
+| Combination Sum II | ❌ No               | ✅ Yes                | `i + 1`         |
+
+And:
+      Subsets II / Combination Sum II
+      → sort + skip duplicate siblings
+
+One correction to your terminology
+
+You said:
+    "we are not creating the sibling branch."
+
+More precisely:
+          "We are at a deeper recursion level, so the second 1 is not a duplicate 
+           sibling choice relative to the current start; it represents another occurrence that can be selected along the current path."
+
+That wording will sound much stronger in an L5 interview.
+============================================================================================================================================
+
+
+
+============================================================================================================================================
+
+
+
+============================================================================================================================================
+
+
+
+============================================================================================================================================
+
+
+
+
+============================================================================================================================================
+
+
+
+============================================================================================================================================
+
+
+
+============================================================================================================================================
+
+
+
+============================================================================================================================================
 
 
 
