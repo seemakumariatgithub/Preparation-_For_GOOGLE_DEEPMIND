@@ -1622,7 +1622,7 @@ Next will be :
 
 
 ============================================================================================================================================
-Problem — Combination Sum II
+Problem — Combination Sum II  LeetCode 39
 
         Given:
         
@@ -1812,7 +1812,9 @@ More precisely:
 
 That wording will sound much stronger in an L5 interview.
 ============================================================================================================================================
+The next useful problem is Generate Parentheses, because it introduces a new kind of pruning.
 
+Given:
 
 
 ============================================================================================================================================
