@@ -1,1 +1,459 @@
+Next Backtracking Problem — Letter Combinations of a Phone Number
 
+        LeetCode 17
+        
+        Given: digits = "23"
+        
+        Return all possible letter combinations:  ["ad","ae","af","bd","be","bf","cd","ce","cf"]
+  
+        The phone mapping is:
+                              2 → abc
+                              3 → def
+                              4 → ghi
+                              5 → jkl
+                              6 → mno
+                              7 → pqrs
+                              8 → tuv
+                              9 → wxyz
+========================================================================================================================================
+First, compare this with what we've already learned
+
+        This is another backtracking problem, but the decision structure is different.
+                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        For:  digits = "23"
+        
+        at digit 2, we have:
+                              a
+                              b
+                              c
+
+        Then for each of those, digit 3 gives:
+
+                              d
+                              e
+                              f
+
+
+          So the tree is:
+
+                          ""
+                      /    |    \
+                     a     b     c
+                   / | \  /|\   /|\
+                  ad ae af bd... cf
+
+          Unlike Subsets, we're not deciding:          
+                                              include / exclude
+          
+          And unlike Permutations, we're not selecting an arbitrary unused element.          
+          Instead:          
+                      At each recursion level, we choose one character from the characters mapped to the current digit.
+
+
+========================================================================================================================================
+Your first L5 task
+                  Don't code yet.                  
+                  Suppose:                    digits = "23"
+                  
+                  and our current state is:       
+                                              index = 0
+                                              path = ""
+                  
+                  Answer these three questions:                  
+                            1. What should index represent?
+                            
+                            2. At index = 0, what are the choices?
+                            
+                            3. When do we know that path represents a complete valid combination and should be added to the result?
+                            
+                  Explain it naturally, just as you've been doing for the previous problems
+========================================================================================================================================
+Yes — your core understanding is correct. ✅ There are two useful refinements.
+
+1. What does index represent?
+                Exactly:                
+                          index represents the current digit in the input string whose character choice we are processing.
+                
+                For:                
+                      digits = "23"
+                
+                we have:                
+                        index = 0 → digit '2' → choices a,b,c
+                        index = 1 → digit '3' → choices d,e,f
+
+*************************************************
+2. Every path is not yet a complete combination
+
+              This is the subtle correction.
+              
+              For:              
+                      path = "a"
+              
+                      "a" is a valid partial path, but it is not a complete answer because we haven't processed digit 3.
+                                    ^^^^^^^^^^^^^^                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              When:              
+                    index == digits.length()
+              we have made one character choice for every digit, so only then is the path a complete combination.
+
+              For example:              
+                            "a"   → partial
+                            "ad"  → complete ✅
+              
+              So the base case is:              
+                              if (index == digits.length()) {
+                                  result.add(path.toString());
+                                  return;
+                              }
+
+========================================================================================================================================
+The recursive state:
+^^^^^^^^^^^^^^^^^^^^
+                We now have:                
+                              index
+                              path
+                
+                And the choice at each level comes from the mapping:
+                
+                            letters = phoneMap[digits.charAt(index)]
+                
+                For digit 2:                
+                              a
+                              b
+                              c
+
+                We choose one:                
+                              choose 'a'
+                              → recurse to next digit
+                              → undo 'a'
+                
+                Then:                
+                            choose 'b'
+                            → recurse
+                            → undo 'b'
+                            
+                Then:                
+                          choose 'c'
+                          → recurse
+                          → undo 'c'
+
+              So the same backtracking pattern is still present:
+              
+                            choose
+                               ↓
+                            recurse
+                               ↓
+                            undo
+              
+              But the choice set comes from the current digit's mapping.
+                    ^^^^^^^^^^^^^^^^^^            ^^^^^^^^^^^^^^^^^^^^
+
+========================================================================================================================================
+Compare the backtracking patterns we've learned
+
+This is becoming a very useful pattern family:
+
+    | Problem              | Choice at each level                         |
+    | -------------------- | -------------------------------------------- |
+    | Subsets              | Include / exclude                            |
+    | Subsets II           | Choose next element, skip duplicate siblings |
+    | Combination Sum      | Choose candidate, reuse allowed              |
+    | Combination Sum II   | Choose candidate, no reuse                   |
+    | Generate Parentheses | Add `(` / `)` subject to constraints         |
+    | Letter Combinations  | Choose one letter mapped to current digit    |
+
+========================================================================================================================================
+So the universal question remains:
+**********************************
+
+        What are my choices at this recursion level?
+    
+========================================================================================================================================
+One more important observation
+
+            For digits = "23":
+            
+                        index = 0
+                        → 3 choices
+                        
+                        index = 1
+                        → 3 choices
+            
+            Therefore:   3×3=9 combinations.
+              
+              For a general input, the number of outputs is:
+              
+                            prod(i=0) to (n-1) of  mapping(digits[i])
+              
+              So the complexity depends on how many letters each digit maps to.
+========================================================================================================================================
+Your next L5 question
+
+            Suppose:            
+                    digits = "23"
+                    path = "a"
+                    index = 1
+            
+            The current digit is 3, so the choices are d, e, f.
+            
+                    When we choose d, what should the recursive call use for the next index?
+            
+            Would it be:
+            
+                          index
+                          
+                          or
+                          
+                          index + 1
+            
+            And why?
+
+  Exactly. ✅
+
+        Your reasoning is correct:
+        
+                After choosing a letter for the current digit, we move to index + 1 
+                because that digit has already been processed. We now need to choose a letter for the next input digit.
+        
+        So the recursive transition is:
+        
+        backtrack(digits, index + 1, path, result);
+
+This gives us another useful rule:
+
+| Problem             | Recursive movement | Why                                          |
+| ------------------- | ------------------ | -------------------------------------------- |
+| Combination Sum     | `i`                | Same candidate can be reused                 |
+| Combination Sum II  | `i + 1`            | Current candidate cannot be reused           |
+| Letter Combinations | `index + 1`        | Current digit has already been processed |
+
+
+    The important thing is that the meaning of the index changes according to the problem.
+========================================================================================================================================
+Let's trace "23"
+                
+                Start:                
+                      index = 0
+                      path = ""
+                
+          Digit 2 → "abc"
+                
+                Choose a:                
+                          path = "a"
+                          index = 1
+                
+          Digit 3 → "def"
+                
+                Choose d:                
+                    path = "ad"
+                    index = 2
+                
+          Now:                
+                index == digits.length()
+                
+            So "ad" is a complete combination.
+                
+          Then backtrack:                
+                "ad" → "a"
+                
+           and try:               
+                    "ae"
+                    "af"
+                
+          Then undo a:                
+                    "a" → ""
+                
+           and try:                
+                "b"
+                
+           which produces:                
+                  "bd"
+                  "be"
+                  "bf"
+                
+           and so on.
+
+
+
+========================================================================================================================================
+One important Java detail
+
+                Because path is a sequence of characters, we'd typically use:
+                
+                                          StringBuilder path
+                              
+                                    rather than List<Character>.
+                
+                Then the backtracking is:                
+                                        path.append(ch);                
+                                        backtrack(...);                
+                                        path.deleteCharAt(path.length() - 1);
+                
+                So the same invariant applies:
+                
+                          After the recursive call returns, restore path to exactly what it was before making the choice.
+
+
+========================================================================================================================================
+Complexity insight
+
+                  For digits containing 3 letters each:    3^n   possible combinations.
+                  
+                  If digits 7 or 9 occur, they have 4 letters, so the general output count is: 4^n
+
+                                                                                        ∏∣mapping(digiti​)∣
+
+                Since each generated string has length n, the output-sensitive time is:                
+                                                                                            O(n 4^n)                
+                as a worst-case upper bound.
+
+
+                Auxiliary recursion/path space:                
+                                               O(n)               
+                excluding the returned output.
+
+========================================================================================================================================
+Your next challenge
+
+          Now compare Combination Sum and Letter Combinations.
+          
+          In Combination Sum, we had:          
+                                      state = start + remainingTarget + path
+          
+          In Letter Combinations, we have:          
+                                        state = index + path
+
+          Why don't we need a remainingTarget in Letter Combinations?
+
+Exactly. ✅ That is the correct distinction.
+
+            Your statement:            
+                        “We are not targeting to some target value.”
+            
+            is the right idea. For an L5 interview, I'd make it more precise:
+            
+                      "We don't need remainingTarget because there is no numeric constraint that 
+                        changes as we recurse. The only thing we need to track is which input digit we're currently processing.
+                        
+                      Once index == digits.length(), we've selected one valid character for every digit, 
+                          so the current path is a complete combination."
+            
+            Compare the state design            
+                          This is an important DP/backtracking skill: 
+                                      only put information in the recursive state that affects future decisions.
+========================================================================================================================================
+⭐ This is a very important state-design principle
+
+          When designing recursion, ask:          
+                      "What information from the current situation can change the choices available to me in the future?"
+          
+Don't add variables just because another backtracking problem had them.
+
+For Example :
+
+            Subsets
+            → index + path
+            
+            Combination Sum
+            → start + remainingTarget + path
+            
+            Generate Parentheses
+            → openUsed + closeUsed + path
+            
+            Letter Combinations
+            → index + path
+
+Each state is different because the constraint structure is different.
+
+That's exactly the kind of reasoning that distinguishes strong interview performance from template memorization.
+========================================================================================================================================
+
+
+
+========================================================================================================================================
+
+
+
+========================================================================================================================================
+
+
+
+========================================================================================================================================
+
+
+========================================================================================================================================
+
+
+
+========================================================================================================================================
+
+
+
+
+========================================================================================================================================
+
+
+
+
+========================================================================================================================================
+
+
+
+========================================================================================================================================
+
+
+
+========================================================================================================================================
+
+
+
+========================================================================================================================================
+
+
+
+
+========================================================================================================================================
+
+
+
+========================================================================================================================================
+
+
+========================================================================================================================================
+
+
+========================================================================================================================================
+
+
+========================================================================================================================================
+
+
+========================================================================================================================================
+
+
+
+
+========================================================================================================================================
+
+
+
+
+========================================================================================================================================
+
+
+
+
+========================================================================================================================================
+
+
+
+========================================================================================================================================
+
+
+
+========================================================================================================================================
+
+
+========================================================================================================================================
+
+========================================================================================================================================
+========================================================================================================================================
