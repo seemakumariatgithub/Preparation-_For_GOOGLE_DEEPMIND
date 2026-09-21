@@ -754,19 +754,634 @@ Don't prematurely optimize the data model before understanding the workload.
                   Suppose the interviewer says:                  
                                     "Assume this is a large-scale platform."
                   
-                  We need numbers.                  
-                              Let's make reasonable assumptions.
+We need numbers:                  
+            Let's make reasonable assumptions.
                   
-                  Users:
+                  Users: 100 million registered users
+                  Suppose:  10 million DAU
+            
+                        DAU = Daily Active Users.
+
+            Now assume each active user performs approximately: 20 requests/day
+            
+            Therefore:  10M × 20 = 200M requests/day
+            Average RPS:     200M / 86,400   ≈ 2,315 requests/sec
+
+            So:  Average traffic ≈ 2.3K requests/sec
+            
+            But never design only for average traffic.
+
+            Suppose peak traffic is 10× average: ≈ 23K requests/sec
+            
+            And during a flash sale, perhaps considerably higher.
+
+
+            We can therefore initially design around: ~25K peak requests/sec, 
+            while keeping the architecture capable of further horizontal scaling.
+            
+            The exact number isn't sacred. The important thing is that we state the assumptions and use them consistently.
 ================================================================================================================================================
+9. Read vs Write workload
+
+                  Now ask:                  
+                              What type of traffic dominates e-commerce?
+                  
+                  Usually:     Product browsing/search
+                                      ↓
+                                     READS
+
+                  far exceeds:                  
+                              Order creation
+                              Cart modification
+                              Inventory update
+                                      ↓
+                                    WRITES
+
+                  So our system is broadly:
+                  
+                                              E-COMMERCE
+                                                   |
+                                        ┌──────────┴──────────┐
+                                        ↓                     ↓
+                                      READS                 WRITES
+                                        |                     |
+                                 Product/Search          Cart/Order
+                                 Catalog                 Inventory
+                              
+       This immediately tells us something important:
+                                                      We should optimize the read path independently.      
+      That will lead us toward:      
+                                    CDN
+                                     ↓
+                                    Cache
+                                     ↓
+                                    Search index
+                                     ↓
+                                    Read replicas
+      
+      But we haven't chosen those yet.
+
+We derive them from the requirements.
+================================================================================================================================================
+10. Identify critical vs non-critical operations
+
+            This is another L6-level distinction.
+            
+            Consider:            
+                        Product description:                        
+                              If it takes:  200 ms
+                        
+                        instead of: 50 ms
+            
+            it's undesirable, but usually not a catastrophic business failure.
+
+      Now consider:      
+                  Inventory reservation:                  
+                  If two users purchase the last item:                  
+                                                      Stock = 1                  
+                                                      User A → reserve
+                                                      User B → reserve
+      
+                  and both succeed:
+      
+      Stock becomes inconsistent
+      
+      That's much more serious.
+
+Therefore:
+            | Operation           | Requirement                                 |
+            | ------------------- | ------------------------------------------- |
+            | Product description | High availability + low latency             |
+            | Search              | High availability + low latency             |
+            | Cart                | High availability                           |
+            | Inventory           | Stronger correctness                        |
+            | Order               | Strong consistency around state transitions |
+            | Payment             | Very high correctness                       |
+            | Analytics           | Can usually be asynchronous                 |
+
+This is going to drive our architecture.
+================================================================================================================================================
+11. First major architectural insight:
+
+      We now have enough information to form our first architectural hypothesis.
+      
+      Not the final architecture.      
+      Something like:
+                                      CLIENT
+                                        |
+                                        ↓
+                                  API Gateway
+                                        |
+                          ┌─────────────┼──────────────┐
+                          ↓             ↓              ↓
+                       Catalog        Search          Cart
+                          |             |              |
+                          ↓             ↓              ↓
+                       Catalog DB    Search Index    Cart Store
+                          |
+                          ↓
+                        Cache
+
+And the transaction-oriented side:
+                                      Checkout
+                                         |
+                                ┌────────┼────────┐
+                                ↓        ↓        ↓
+                           Inventory   Payment   Order
+                                |        |        |
+                                └────────┼────────┘
+                                         ↓
+                                      Events
+                                         |
+                               ┌─────────┼─────────┐
+                               ↓         ↓         ↓
+                         Notification  Analytics  Fulfillment
+
+Don't memorize this diagram yet.
+
+We haven't answered:
+                        Why API Gateway?
+                        Why separate Search?
+                        Why cache?
+                        Why Kafka/events?
+                        Why separate Inventory?
+                        Which database?
+                        SQL or NoSQL?
+                        Where should transactions exist?
+                        What consistency model?
+                        How do we prevent overselling?
+                        What happens if payment succeeds but order creation fails?
+
+Those are the discussions that will make this an L6-level design.
+================================================================================================================================================
+12. The first deep interview question
+
+            Imagine I'm the Google interviewer.
+            
+            I ask:            
+                        "Why can't you simply use one PostgreSQL database for everything?"
+            
+            Don't immediately answer:            
+                        "Because microservices are scalable."
+            
+            That's not a strong answer.
+            
+      A better reasoning path is:
+                              Different workloads
+                                      ↓
+                              Different scaling characteristics
+                                      ↓
+                              Different consistency requirements
+                                      ↓
+                              Different access patterns
+                                      ↓
+                              Potentially different storage requirements
+
+
+             For example:                        
+                        Catalog  : Read-heavy
+                        Search   : Full-text + filtering + ranking
+                        Cart     : Fast key-based access
+                        Inventory: Concurrent updates + correctness
+                        Order    : Transactional state changes
+                        
+            Trying to force all of those into one storage model creates different problems.
+                        
+            But—and this is important—                        
+                        That does NOT mean we automatically need five different databases.
+
+That's an L6 distinction.
+
+We choose technology based on requirements, 
+            not because "microservices = one database per service."
+================================================================================================================================================
+13. Our first architecture decision
+
+For the initial version, I'd actually keep the persistence choices relatively conservative:
+
+Catalog       → PostgreSQL
+Inventory     → PostgreSQL
+Order         → PostgreSQL
+Cart          → Redis + durable persistence as needed
+Search        → Elasticsearch/OpenSearch
+Cache         → Redis
+Events        → Kafka
+
+But we're not locking this in yet.
+
+We'll challenge each decision.
+
+For example:
+
+            Why PostgreSQL for inventory?            
+                        We'll eventually discuss:                        
+                                          Optimistic locking
+                                          Pessimistic locking
+                                          Atomic UPDATE
+                                          Reservation table
+                                          Database constraints
+                                          Distributed locks
+                        
+                        and determine which approach fits.
+
+
+================================================================================================================================================
+14. What you should learn from today's first step
+
+The important pattern is:
+                              Business requirement
+                                     ↓
+                              Workload
+                                     ↓
+                              Scale
+                                     ↓
+                              Consistency requirement
+                                     ↓
+                              Architecture
+                                     ↓
+                              Technology choice
+
+Not:
+                  Amazon
+                   ↓
+                  Microservices
+                   ↓
+                  Kafka
+                   ↓
+                  Redis
+                   ↓
+                  MongoDB
+
+
+That second approach is architecture memorization.
+
+The first approach is system-design engineering.
+================================================================================================================================================
+Next step:
+            Now that we've established the requirements and scale, the next part should be:
+
+Step 2 — Capacity Estimation in depth
+
+We'll calculate, with actual assumptions:
+
+                        QPS/RPS
+                        peak QPS
+                        product-read traffic
+                        search traffic
+                        cart traffic
+                        order traffic
+                        storage requirements
+                        database size
+                        cache size
+                        bandwidth
+                        Kafka throughput
+
+And, importantly, I'll show you how to perform these calculations quickly in an interview without getting lost in mathematics.
+
+Then we'll use those numbers to derive the architecture, rather than choosing the architecture first.
+================================================================================================================================================
+Step 2 — Capacity Estimation:
+
+            For an L6 system-design interview, capacity estimation is not about getting perfectly accurate numbers.
+            
+            The interviewer mainly wants to see whether you can:
+            
+                  1. Make reasonable assumptions.
+                  2. Convert business numbers into technical load.
+                  3. Identify the dominant workload.
+                  4. Use those numbers to justify architectural decisions.
+                  5. Recognize peak traffic and growth.
+                  
+            So let's do this exactly as you would in the interview.
+
+2.1 Start with our assumptions
+
+We established:
+
+                  | Metric                       | Assumption |
+                  | ---------------------------- | ---------: |
+                  | Registered users             |       100M |
+                  | Daily Active Users           |        10M |
+                  | Requests per active user/day |         20 |
+                  | Total requests/day           |       200M |
+                  | Average RPS                  |      ~2.3K |
+                  | Peak multiplier              |        10× |
+                  | Peak RPS                     |       ~23K |
+
+
+So our initial design target is approximately: 25K requests/second at peak
+
+We can say in an interview:
+                  "I'll design for roughly 25K peak requests per second based on a 10× peak-to-average multiplier.
+                  The exact multiplier can be refined if the interviewer provides actual traffic patterns."
+
+That is a good L6 answer because you're making the assumption explicit.
+
+
+2.2 But 25K RPS is not enough
+
+            This is where system-design interviews become interesting.
+            
+            We cannot simply say:            
+                        "The system receives 25K RPS."
+            
+            We need to understand what those requests are doing.            
+                        Suppose our 20 requests/user/day look roughly like this:
+                                          10  → Product browsing
+                                           4  → Search
+                                           2  → Product details
+                                           2  → Cart
+                                           1  → Order/Checkout
+                                           1  → Other
+
+            So approximately:            
+                        50% → Product browsing
+                        20% → Search
+                        10% → Product details
+                        10% → Cart
+                         5% → Checkout/order
+                         5% → Other
+            
+            Now apply that to 25K peak RPS.
+
+                        Product browsing  :   25K × 50%  ≈ 12.5K RPS
+                        Search:  25K × 20% ≈ 5K RPS
+                        Product details:  25K × 10% ≈ 2.5K RPS
+                        Cart :  25K × 10% ≈ 2.5K RPS
+                        Checkout/order : 25K × 5% ≈ 1.25K RPS
+
+So we get: 
+                                25K Peak RPS
+                                     |
+                   ┌─────────────────┼──────────────────┐
+                   ↓                 ↓                  ↓
+               Product/Search      Cart             Checkout
+                   |
+                   ↓
+               ~20K RPS            ~2.5K             ~1.25K
+
+      The exact distribution is an assumption, not a fact about Amazon/Flipkart.
+      
+      That's okay.
+
+2.3 Why is this useful?:
+                        Now something becomes obvious:
+                        
+                        Our system is overwhelmingly read-heavy.
+                        
+                        Approximately:
+                                    READS  ≈ 80–90%
+                                    WRITES ≈ 10–20%
+
+            This is a huge architectural clue.
+            
+            Imagine we had designed:
+                                          Client
+                                            ↓
+                                          Load Balancer
+                                            ↓
+                                          PostgreSQL
+
+            Every product request would hit the database.
+            
+            At ~20K read requests/sec:
+                                          20,000
+                                             ↓
+                                          PostgreSQL
+
+            That creates unnecessary database pressure.
+            
+            Instead, we can start thinking:
+                                            Product Request
+                                                  ↓
+                                               Cache
+                                            ↙          ↘
+                                        HIT             MISS
+                                         ↓               ↓
+                                     Response        Product DB
+
+      This is the first point where capacity estimation directly leads to architecture.
+
+
+2.4 Product data storage estimation:
+
+            Now let's estimate product storage.
+                        
+                        Suppose:  100M products
+                        Average product metadata: ~5 KB                        
+                        Then: 100M × 5 KB
+                        Approximately: 500 GB                        
+                        So raw product metadata is roughly: 500 GB
+
+But this doesn't include:
+                        indexes
+                        replicas
+                        historical data
+                        images
+                        videos
+                        search indexes
+                        backups
+
+Therefore actual infrastructure storage will be substantially larger.
+
+
+
+2.5 Important distinction: product images:
+
+                        Should we store images inside PostgreSQL?   Usually, no.
+                        
+                        Suppose a product has:  5 images                        
+                        and each image averages: 500 KB                        
+                        Then:  100M × 5 × 500 KB                        
+                        That's:  250 TB
+                        
+                        Now imagine putting 250 TB of binary data inside a relational database.
+
+            That's a very different workload.
+            
+            Instead:
+                        Product metadata
+                               ↓
+                        Database
+                        
+                        Product images
+                               ↓
+                        Object Storage
+                               ↓
+                              CDN
+                               ↓
+                            Customer
+
+      For example:
+                        Product Page
+                             |
+                   ┌─────────┴─────────┐
+                   ↓                   ↓
+              Product API          Image URLs
+                   ↓                   ↓
+              Product DB              CDN
+                                       ↓
+                               Object Storage
+
+      This is a classic example of separating metadata from large binary objects.
+
+
+2.6 Why CDN?
+
+            Imagine the same iPhone image is requested thousands of times.
+            
+            Without CDN:
+                              10,000 users
+                                   ↓
+                              Application
+                                   ↓
+                              Object Storage
+
+            With CDN:
+                        10,000 users
+                             ↓
+                            CDN
+                             ↓
+                        Cache HIT
+
+
+Only cache misses reach origin storage.
+
+      Therefore CDN helps with:      
+                  bandwidth reduction
+                  latency
+                  origin protection
+                  traffic spikes
+                  geographic distribution
+      
+      And notice the reasoning:
+                              Large static objects
+                                     +
+                              High read volume
+                                     ↓
+                                    CDN
+
+      We didn't choose CDN because:
+                  "Every modern architecture needs a CDN."
+      
+      We chose it because the workload justifies it.
+
+2.7 Order traffic
+
+            Now let's look at the opposite side.
+            
+            Suppose peak checkout traffic is:  ~1,250 requests/sec
+            
+            This is much smaller than product reads.
+            But here's the important point:            
+                              Lower traffic doesn't mean lower importance.
+            
+            Order processing has much stricter correctness requirements.
+
+For example:
+
+            Product browsing: eventual consistency may be acceptable
+            
+            Order: incorrect state is unacceptable
+
+            So we should not optimize everything purely for throughput.            
+            We optimize each domain according to its business requirement.
+
+2.8 Order storage:
+                  Suppose we process:  5M orders/day                  
+                  Assume an average order record + metadata is:  ~5 KB                  
+                  Then:  5M × 5 KB  ≈ 25 GB/day                  
+                  One year: 25 GB × 365 ≈ 9.1 TB
+
+      That's raw logical data.
+            Add:      
+                  indexes
+                  replicas
+                  audit data
+                  payment references
+                  status history
+                  backups
+
+      and the physical storage requirement could easily become significantly larger.
+      
+      This immediately raises another question:      
+                  Should we keep all historical orders in the primary transactional database forever?
+      
+      Not necessarily.  We could eventually introduce:
+
+                                          Hot data
+                                             ↓
+                                          Primary OLTP database
+                                          
+                                          Older historical data
+                                             ↓
+                                          Archive / analytical storage
+
+That's an example of data lifecycle management.
+================================================================================================================================================
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
 
 ================================================================================================================================================
 
 ================================================================================================================================================
 
-================================================================================================================================================
+
 
 ================================================================================================================================================
 
+
+
 ================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+
+================================================================================================================================================
+
+
+
+
+
 
