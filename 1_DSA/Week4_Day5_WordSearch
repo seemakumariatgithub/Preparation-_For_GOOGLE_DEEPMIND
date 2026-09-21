@@ -1,12 +1,101 @@
 Word Search — LeetCode 79
 
 This is the next important jump in your backtracking progression.
-==========================================================================================================================================
 
 
-==========================================================================================================================================
+So far we have worked with:
+                          
+                          Subsets
+                          → choices over an array
+                          
+                          Combination Sum
+                          → choices + target constraint
+                          
+                          Generate Parentheses
+                          → choices + state invariant
+                          
+                          Palindrome Partitioning
+                          → choices over substrings + validity check
 
+Now we move to:
+                Word Search
+                → choices over a 2D grid + path constraint + visited-state management
+
+For a 9+ year Java engineer preparing at L6 depth, the important part is not memorizing the DFS. It is understanding:
+
+            what the state is,
+            what makes a move legal,
+            why visited is path-local,
+            why backtracking restores state,
+            where pruning comes from,
+            and what the actual complexity is.
 ==========================================================================================================================================
+1. Problem
+
+          Given a 2D character grid and a word, determine whether the word exists in the grid.
+
+          You can move:
+                        up
+                        down
+                        left
+                        right
+
+You cannot use the same cell more than once in the same path.
+
+                  Example:                  
+                              A B C E
+                              S F C S
+                              A D E E
+                  
+                  Word:                  
+                        "ABCCED"
+                  
+                  Output:                  
+                          true
+
+A valid path is:
+                A → B → C
+                        ↓
+                        C
+                        ↓
+                        E
+                        ↓
+                        D
+==========================================================================================================================================
+2. First principle: this is backtracking
+
+At every cell, after matching the current character, we have up to four choices:
+
+      But not every choice is valid.      
+              A move is valid only if:              
+                        1. the cell is inside the grid,
+                        2.it hasn't already been used in the current path,
+                        3. its character matches the next character of the word.
+
+So the structure becomes:
+                        choose neighboring cell
+                                ↓
+                        validate choice
+                                ↓
+                        mark as visited
+                                ↓
+                        recurse
+                                ↓
+                        undo visited state
+
+That is classic backtracking.
+==========================================================================================================================================
+3. Recursive state
+            This is the first major state-design change.
+            
+                    We need: (row, col, index)
+            where:
+                    row = current grid row
+                    col = current grid column
+                    index = current character of the word we're trying to match
+
+We can think of the complete logical state as:  (row, col, index, visited)
+
 
 
 ==========================================================================================================================================
