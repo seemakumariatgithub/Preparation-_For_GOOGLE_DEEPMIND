@@ -1319,23 +1319,222 @@ For example:
 
 That's an example of data lifecycle management.
 ================================================================================================================================================
+2.9 Kafka throughput
 
+            Suppose every order generates approximately: 5 events
+
+            Examples:            
+                        OrderCreated
+                        PaymentCompleted
+                        InventoryReserved
+                        OrderConfirmed
+                        NotificationRequested
+            
+            At:                   5M orders/day
+            we have:              5M × 5= 25M events/day            
+            Average event rate:   25M / 86,400 ≈ 289 events/sec
+            At peak, perhaps:    ~3K events/sec            
+                                    depending on our peak assumptions.
+
+So Kafka isn't necessarily required because we have massive event throughput.
+It's useful because of decoupling and asynchronous processing.
+
+That's a critical distinction.
 ================================================================================================================================================
+2.10 Why Kafka if traffic isn't enormous?
 
+            Imagine:           
+                        Order Service
+                              |
+                              ├── Send email
+                              ├── Update analytics
+                              ├── Notify seller
+                              ├── Update fulfillment
+                              └── Send SMS
+            
+            If Order Service synchronously calls everything:
+                                    Order
+                                      ↓
+                                    Email
+                                      ↓
+                                    SMS
+                                      ↓
+                                    Analytics
+                                      ↓
+                                    Fulfillment
 
+            then one slow downstream service can slow the entire order request.
+            
+            Instead:
+                        Order Service
+                             |
+                             ↓
+                           Kafka
+                             |
+             ┌───────────────┼────────────────┐
+             ↓               ↓                ↓
+       Notification      Analytics       Fulfillment
+
+Now consumers are decoupled.
+
+      This gives us:      
+                  asynchronous processing
+                  buffering
+                  retry
+                  independent scaling
+                  consumer isolation
+                  replay capability
+
+So:
+      Kafka is primarily solving an architectural decoupling problem here, not merely a throughput problem.
+
+That's exactly the kind of distinction I want you to be able to articulate in an L6 interview.
 ================================================================================================================================================
+2.11 Cache estimation
 
+                  Let's say we have:  100M products
+                  
+                  But we don't need every product in cache.
 
+                  Suppose our top:   10M products   receive most of the traffic.
+                  Average cached product representation:  5 KB
+                  Then:   10M × 5 KB ≈ 50 GB
+                  So we might need approximately:  50 GB logical cache capacity
+                  
+                  But real Redis deployment needs additional capacity for:                  
+                                    replication
+                                    metadata
+                                    eviction headroom
+                                    fragmentation
+                                    failover
+
+                  So we wouldn't provision exactly 50 GB.                  
+                  This is another important interview principle:                  
+                              Never provision infrastructure exactly at calculated capacity.
+                  
+                  You need headroom.
 ================================================================================================================================================
+2.12 Our capacity picture
 
+Now our system starts looking like this:
 
+                                           CLIENTS
+                                              |
+                                              ↓
+                                       ~25K peak RPS
+                                              |
+                                   ┌──────────┴──────────┐
+                                   ↓                     ↓
+                                READ PATH             WRITE PATH
+                                   ↓                     ↓
+                            ~20K+ RPS                  ~few K RPS
+                                   |                     |
+                             ┌─────┴─────┐          ┌────┴─────┐
+                             ↓           ↓          ↓          ↓
+                           Cache       Search     Cart       Order
+                             |           |                     |
+                             ↓           ↓                     ↓
+                         Product DB  Search DB             Transaction DB
+
+And static content:            
+                        Images/Videos
+                             ↓
+                        Object Storage
+                             ↓
+                            CDN
+            
+Events:            
+            Order
+              ↓
+            Kafka
+              ↓
+            Async consumers
+            
+ We're now ready to construct the actual high-level architecture.
 ================================================================================================================================================
+2.13 One important correction to our thinking
 
+      Before we move forward, remember this:
+      
+      Don't say:      
+                  "We'll use Redis because the system needs to scale."
+      
+      Instead say:
+      
+                  "Product reads dominate our workload, and much of the product data is relatively stable. 
+                  A distributed cache can absorb a large portion of those reads, 
+                  reducing database load and improving latency."
+      
+      Similarly:
+                  Don't say:                  
+                              "We'll use Kafka because it's scalable."
+                  
+                  Say:                  
+                        "Several downstream operations don't need to complete before the 
+                        customer receives an order response. Kafka allows us to decouple 
+                        those asynchronous workflows and provides buffering and independent consumer scaling."
+                  
+ This requirement → problem → solution → trade-off chain is one of the biggest things we'll train throughout this preparation.
 ================================================================================================================================================
+Where we go next
 
+We've now completed:
 
+                          HLD E-COMMERCE
+                                │
+              ┌─────────────────┴─────────────────┐
+              ↓                                   ↓
+        1. Requirements                    2. Capacity
+              │                                   │
+              │                                   ├── 25K peak RPS
+              │                                   ├── Read-heavy
+              │                                   ├── ~500GB product metadata
+              │                                   ├── Large image storage
+              │                                   └── Order/event workload
+              │
+              └───────────────────┬───────────────┘
+                                  ↓
+                       3. Architecture
 
+Next: Step 3 — Design the actual HLD
+
+We'll build:
+                        Client
+                          ↓
+                        DNS
+                          ↓
+                        CDN
+                          ↓
+                        Load Balancer
+                          ↓
+                        API Gateway
+                          ↓
+                        Services
+                          ├── Catalog
+                          ├── Search
+                          ├── Cart
+                          ├── Inventory
+                          ├── Order
+                          ├── Payment
+                          └── Notification
+                               ↓
+                           Data Layer
+                               ├── PostgreSQL
+                               ├── Redis
+                               ├── Search Index
+                               ├── Kafka
+                               └── Object Storage
 ================================================================================================================================================
+      But we'll derive every box one by one.
+      
+      We'll start with the very first request path:
+
+            Customer opens the Amazon/Flipkart application → searches for a product → receives search results.
+      
+      That will let us deeply understand 
+            DNS → CDN → Load Balancer → API Gateway → Search Service → Search Index, 
+            including why each component exists, what problem it solves, what happens internally, and what happens when it fails.
+      
 
 
 
