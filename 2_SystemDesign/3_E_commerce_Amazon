@@ -43,20 +43,130 @@ Why this is the right system for your preparation:
 | System evolution         | Monolith → modular monolith → microservices           |
 
 ================================================================================================================================================
+And most importantly, it gives us opportunities to answer the L6-level questions:
+
+                  Why this design?
+                  Why not another design?
+                  What breaks at 10× scale?
+                  What happens during failure?
+                  What consistency is actually required?
+                  Where is the bottleneck?
+                  How would you evolve the system?
+
+================================================================================================================================================
+How I suggest we prepare
+
+Rather than doing one huge Amazon HLD answer, I suggest this progression:
+
+                                         E-COMMERCE PLATFORM
+                                                 │
+                                ┌────────────────┼────────────────┐
+                                │                │                │
+                           Product Catalog    Search          User/Cart
+                                │                │                │
+                                └────────────────┼────────────────┘
+                                                 ↓
+                                          INVENTORY SERVICE
+                                                 ↓
+                                           ORDER SERVICE
+                                                 ↓
+                                      ┌──────────┼──────────┐
+                                      ↓          ↓          ↓
+                                   Payment    Inventory   Notification
+                                      │
+                                      ↓
+                                  Fulfillment
+                                      │
+                                      ↓
+                                    Delivery
 
 
 ================================================================================================================================================
 
+Phase 1 — Start with the core system
+
+            Our first HLD should be:
+            
+            Design an Amazon/Flipkart-like E-commerce Platform
+            
+                        Scope:                        
+                                    Customer:
+
+                                                Register/Login
+                                                    ↓
+                                                Browse products
+                                                    ↓
+                                                Search products
+                                                    ↓
+                                                View product details
+                                                    ↓
+                                                Add to cart
+                                                    ↓
+                                                Checkout
+                                                    ↓
+                                                Place order
+                                                    ↓
+                                                Make payment
+                                                    ↓
+                                                Track order
 
 
+2. Seller:
+            Create product
+                ↓
+            Update product
+                ↓
+            Manage inventory
+                ↓
+            Receive orders
+
+3. Platform: 
+                  Product Catalog
+                  Search
+                  Inventory
+                  Cart
+                  Order
+                  Payment
+                  Notification
+                  Fulfillment
 ================================================================================================================================================
+Phase 2 — Then deep dive into the interesting problems
 
+            This is where the L6 preparation really starts.
+            
+            For example:            
+                        Problem 1 — Inventory
+                        
+                        Suppose:                        
+                                    Product A
+                                    Stock = 1
+                        
+                        Two customers simultaneously click:
+                        
+                                    BUY
+            
+                        We need to prevent:            
+                                    Customer A → gets product
+                                    Customer B → gets product
+            
+                        when only one exists.
+                        
+                        This leads us into:
+                                                Concurrency
+                                                     ↓
+                                                Atomic operations
+                                                     ↓
+                                                Optimistic locking
+                                                     ↓
+                                                Pessimistic locking
+                                                     ↓
+                                                Distributed locking
+                                                     ↓
+                                                Reservation model
+                                                     ↓
+                                                Consistency
 
-
-================================================================================================================================================
-
-
-
+That's an entire interview discussion.
 ================================================================================================================================================
 
 
