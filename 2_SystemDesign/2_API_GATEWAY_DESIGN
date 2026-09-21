@@ -936,7 +936,64 @@ The exact capabilities depend on the implementation, but this conceptual distinc
 
 
 ===================================================================================================================================================
+36. How I'd answer "Design an API Gateway" in the actual interview
 
+I'd start with:
+
+"I'd first clarify whether the gateway is intended primarily for north-south traffic from external clients or also for internal service-to-service communication. I'll assume we're designing an internet-facing gateway for a large microservices platform."
+
+Then:
+
+"The gateway will provide a unified API endpoint and handle cross-cutting concerns such as authentication, coarse-grained authorization, rate limiting, routing, API versioning, request validation, TLS termination, and observability. It should remain stateless so that it can horizontally scale across multiple instances and regions."
+
+Then draw:
+
+Clients
+   |
+Global Traffic Manager
+   |
+Gateway Cluster
+   |
+   +-- Auth
+   +-- Rate Limit
+   +-- Routing
+   +-- Validation
+   +-- Observability
+   |
+   +--------+---------+
+            |
+       Microservices
+
+Then immediately discuss:
+
+How does the gateway scale?
+How is rate limiting distributed?
+What happens when a backend is unhealthy?
+What happens when a gateway region fails?
+How do we prevent retries from duplicating operations?
+What belongs in the gateway vs backend?
+Which traffic should bypass the gateway?
+What are the latency implications?
+
+That last part is particularly important.
+
+37. Your L5 takeaway
+
+The strongest answer isn't:
+
+"API Gateway provides authentication, rate limiting, routing and logging."
+
+That's a definition.
+
+The L5 answer is:
+
+"I introduce an API Gateway to create a controlled, scalable boundary between external clients and backend services. I keep the gateway stateless and horizontally scalable, use it for cross-cutting API concerns such as authentication, authorization, rate limiting, routing, versioning and observability, while keeping business logic inside services. I also explicitly avoid putting large data-plane traffic through the gateway when CDN/object storage or direct service paths are more appropriate. The key trade-offs are gateway latency, distributed rate-limit coordination, failure handling, and avoiding the gateway becoming a centralized bottleneck or single point of failure."
+
+That is the level of reasoning you should aim for in your Google DeepMind L5 system-design interview.
+
+For Google's own API Gateway, the current documentation confirms the same broad separation: gateway request handling includes route matching and authentication before forwarding to backends, while API management provides quotas, monitoring, logging and related controls.
+
+And one useful real-world nuance: Google Cloud's managed API Gateway has specific payload and streaming limits, so a production design should not assume an API gateway is suitable for arbitrary high-volume streaming/data-plane traffic.
 
 
 ===================================================================================================================================================
