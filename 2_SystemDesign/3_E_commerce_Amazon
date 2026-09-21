@@ -168,35 +168,327 @@ Phase 2 — Then deep dive into the interesting problems
 
 That's an entire interview discussion.
 ================================================================================================================================================
+Problem 2 — Order + Payment + Inventory
+
+Suppose:
+            Order Service
+                  ↓
+            Inventory Service
+                  ↓
+            Payment Service
+
+What happens?: when :
+                        Inventory succeeds
+                                ↓
+                        Payment fails
+
+Should inventory remain reserved?
 
 
+What if:    Payment succeeds
+                    ↓
+            Order service crashes
 
+Now we enter:
+
+                        Distributed transactions
+                                ↓
+                        Saga pattern
+                                ↓
+                        Compensation
+                                ↓
+                        Idempotency
+                                ↓
+                        Retry
+                                ↓
+                        Exactly-once vs at-least-once
+
+These are very important L6-level discussions.
 ================================================================================================================================================
+Problem 3 — Search
 
+Amazon-like search introduces:
+                                    Product DB
+                                         ↓
+                                    CDC / Kafka
+                                         ↓
+                                    Search Index
+                                         ↓
+                                    Elasticsearch/OpenSearch
 
-
+Then we discuss:
+                  Why not query PostgreSQL directly?
+                  Why search index?
+                  Eventual consistency
+                  Index rebuilding
+                  Sharding
+                  Replication
+                  Ranking
+                  autocomplete
+                  filtering
+                  pagination
+                  hot products
 ================================================================================================================================================
+Problem 4 — Cart
+
+            Cart looks simple initially:            
+                                                User → Cart
+            
+            But at scale:
+            
+                              Millions of users
+                                      ↓
+                              Millions of carts
+                                      ↓
+                              High read/write traffic
 
 
 
+We can discuss:
+                  Redis
+                  DynamoDB / Cassandra
+                  SQL
+                  Cache-aside
+                  TTL
+                  Persistence
+                  Cart expiration
+                  Multi-device access
 ================================================================================================================================================
+Problem 5 — Flash sale
 
+      This is one of the best advanced problems.
 
+                  Suppose Flipkart announces:
+                                          iPhone — 90% discount — 100 units.
 
+                  At 12:00 PM:
+
+                                    10 million users
+                                           ↓
+                                           ↓
+                                         BUY
+                                           ↓
+                                    Inventory
+
+Now we have:
+                  Traffic spike
+                        +
+                  Hot key
+                        +
+                  Concurrency
+                        +
+                  Overselling
+                        +
+                  Queueing
+                        +
+                  Rate limiting
+
+This allows us to discuss:
+
+                              Load balancer
+                              CDN
+                              Caching
+                              Rate limiter
+                              Queue
+                              Inventory reservation
+                              Partitioning
+                              Hot partition mitigation
+                              Backpressure
+
+That's excellent L6 preparation.
 ================================================================================================================================================
+Phase 3 — Scale the same system
+
+            Once the basic architecture is clear, I would progressively change the requirements.
+
+Level 1:
+      10K users
+                  Simple architecture.
 
 
+Level 2:
+      1M users
+            Introduce:
+                        Load balancing
+                        Caching
+                        Read replicas
+                        Async processing
 
+Level 3:
+      100M users:
+                  Introduce:                  
+                              Partitioning
+                              Sharding
+                              Kafka
+                              Distributed cache
+                              Search cluster
+                              Service decomposition
+
+Level 4:
+      Global users:
+                  Introduce:      
+                        Multi-region
+                        Geo-routing
+                        Replication
+                        Regional failover
+                        Data locality
+
+Level 5:
+      Extreme traffic / flash sale:
+
+                  Introduce:
+                        Rate limiting
+                        Queueing
+                        Backpressure
+                        Hot-key mitigation
+                        Inventory reservation
+                        Load shedding
+
+This progression is much more valuable than memorizing a single architecture.
 ================================================================================================================================================
+Most important: your L6 interview mindset
 
+      For your preparation, I want us to move away from:      
+                        "Here is my architecture."
 
+towards:
+            "Let me first establish the requirements and scale. 
+            Based on the traffic pattern and consistency requirements, I'll choose X rather than Y because..."
+
+For example:
+      Weak answer:      
+                  "We'll use Redis for caching."
+
+      L6-style answer:
+                  "Product details are read much more frequently than they're updated, 
+                  so this is a read-heavy workload. I'd put a distributed cache such as Redis 
+                  in front of the product store using cache-aside. This reduces database read load and latency.
+                  However, I wouldn't use the cache as the source of truth because product price and inventory 
+                  have correctness requirements. Cache invalidation would happen on product updates, 
+                  and I'd also consider TTL as a safety mechanism."
+
+That reasoning is what I want us to practice.
 ================================================================================================================================================
+Our E-commerce HLD roadmap
+
+I recommend this sequence:
+                        1. E-commerce Platform
+                               ↓
+                        2. Product Catalog
+                               ↓
+                        3. Product Search
+                               ↓
+                        4. Shopping Cart
+                               ↓
+                        5. Inventory Management
+                               ↓
+                        6. Order Management
+                               ↓
+                        7. Payment System
+                               ↓
+                        8. Checkout
+                               ↓
+                        9. Order Fulfillment
+                               ↓
+                        10. Notification System
+                               ↓
+                        11. Review & Rating
+                               ↓
+                        12. Recommendation System
+                               ↓
+                        13. Flash Sale System
+                               ↓
+                        14. Distributed Inventory Reservation
+                               ↓
+                        15. Distributed Order Processing
+                               ↓
+                        16. Multi-region E-commerce
+                               ↓
+                        17. Failure & Disaster Recovery
+                               ↓
+                        18. Complete Amazon-scale Architecture
 
 
+And alongside these, we'll deliberately build the underlying concepts:
+
+                                          Load Balancing
+                                          Caching
+                                          Database Selection
+                                          Replication
+                                          Partitioning
+                                          Sharding
+                                          Consistent Hashing
+                                          CAP
+                                          Consistency Models
+                                          Kafka
+                                          Event-driven Architecture
+                                          CQRS
+                                          Saga
+                                          Idempotency
+                                          Rate Limiting
+                                          Circuit Breaker
+                                          Retry
+                                          Backpressure
+                                          Distributed Locking
+                                          Leader Election
+                                          Multi-region Architecture
+                                          Observability
 ================================================================================================================================================
+Where I recommend we begin
 
+For your 9+ years Java/Spring backend background and L6 preparation, I would start with:
+
+            HLD #1 — Design a Large-Scale Amazon/Flipkart E-commerce System
+            
+And we'll do it from zero, in this exact interview sequence:
+                              
+                              1. Clarify requirements
+                                        ↓
+                              2. Functional requirements
+                                        ↓
+                              3. Non-functional requirements
+                                        ↓
+                              4. Capacity estimation
+                                        ↓
+                              5. API design
+                                        ↓
+                              6. Data model
+                                        ↓
+                              7. High-level architecture
+                                        ↓
+                              8. Component responsibilities
+                                        ↓
+                              9. Request flows
+                                        ↓
+                              10. Database choices
+                                        ↓
+                              11. Caching
+                                        ↓
+                              12. Messaging / Kafka
+                                        ↓
+                              13. Scalability
+                                        ↓
+                              14. Consistency
+                                        ↓
+                              15. Failure handling
+                                        ↓
+                              16. Bottlenecks
+                                        ↓
+                              17. Security
+                                        ↓
+                              18. Observability
+                                        ↓
+                              19. Trade-offs
+                                        ↓
+                              20. L6 interviewer follow-up questions
 ================================================================================================================================================
+One important principle: we should not jump directly to microservices. 
+We'll first derive the architecture from requirements and scale, and at every major component 
+I'll explain what it does, why we need it, why we choose it, how it works internally, 
+when it is applicable, and when it is not.
 
+That will make this a genuine L6 system-design upskilling program, 
+rather than an Amazon architecture that you simply memorize.
 
 ================================================================================================================================================
 
