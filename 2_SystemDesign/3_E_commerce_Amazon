@@ -1533,35 +1533,249 @@ We'll build:
       
       That will let us deeply understand 
             DNS → CDN → Load Balancer → API Gateway → Search Service → Search Index, 
-            including why each component exists, what problem it solves, what happens internally, and what happens when it fails.
+            
+including why each component exists, what problem it solves, what happens internally, and what happens when it fails.
       
 
+Great. Now we move from capacity estimation → actual architecture.
+
+                  For your L6 preparation, I'm going to deliberately go slowly here because the important part is not memorizing:
+
+      Client → CDN → LB → API Gateway → Service
+
+The important part is understanding why each layer exists,
+what problem it solves, how the request flows through it, 
+and when we would remove or change it.
 
 
 ================================================================================================================================================
+Step 3 — Search Product: End-to-End Request Flow
+
+      Let's take one concrete requirement:
+      
+      A customer searches for "Nike running shoes".
+      
+      Our first target architecture will be:
+                                              CUSTOMER
+                                                  |
+                                                  ↓
+                                                 DNS
+                                                  |
+                                                  ↓
+                                                 CDN
+                                                  |
+                                                  ↓
+                                            Load Balancer
+                                                  |
+                                                  ↓
+                                            API Gateway
+                                                  |
+                                                  ↓
+                                           Search Service
+                                                  |
+                                                  ↓
+                                        Search Index / OpenSearch
+                                                  |
+                                                  ↓
+                                             Response
+But don't accept this architecture yet.
+
+We're going to derive every component.
+
+================================================================================================================================================
+3.1 Start with the user
+
+            The customer enters:   Nike running shoes
+            
+            The client might call:  GET /api/v1/products/search?q=nike+running+shoes&page=1&size=20
+            
+            Conceptually:            
+                              Mobile/Web
+                                  |
+                                  | HTTPS
+                                  ↓
+                              GET /products/search?q=nike running shoes
+            
+            Now the first question is: Where does this request go?
+
+The client cannot simply know: 10.23.45.67
+
+because our backend may have:
+                              hundreds of servers
+                              multiple regions
+                              changing IP addresses
+                              failover requirements
+
+      So we need DNS.
+
+3.2 DNS — What problem does it solve?
+
+            Suppose our public domain is:  www.example-ecommerce.com
+            
+            The browser needs to convert:            
+                                                www.example-ecommerce.com
+                                                            ↓
+                                                        IP address
+            
+That's DNS's basic job.
+Conceptually:
+
+                  Client
+                     |
+                     | "Where is www.example-ecommerce.com?"
+                     ↓
+                    DNS
+                     |
+                     ↓
+                  IP / endpoint
 
 
+Why not hard-code the server IP?  Because our infrastructure changes.
+
+            Today:
+                        Server A
+                        10.1.1.10
+            
+            Tomorrow:
+                        Server A removed
+                        Server B added
+                        Server C added
+            
+            The customer should not care.
+
+
+ DNS gives us an abstraction:
+                                    Stable domain
+                                         ↓
+                                    Changing infrastructure
+
+============================================================================================================================================
+
+3.3 L6 question: Is DNS a load balancer?
+
+       This is a common interview trap.
+                  
+                  No—not in the same sense as an application/network load balancer.
+                  
+                  DNS can participate in traffic distribution, for example:
+
+                                    example.com
+                                         |
+                                         ├── Region US
+                                         ├── Region Europe
+                                         └── Region Asia
+
+      But DNS is fundamentally a name-resolution system.
+      
+      A load balancer operates on actual incoming network/application traffic.
+      
+      That's an important distinction.
 
 
 ================================================================================================================================================
+3.4 DNS and multi-region architecture
+
+Later, suppose we have:
+                                    DNS
+                                     |
+                          ┌──────────┼──────────┐
+                          ↓          ↓          ↓
+                        India       US        Europe
+                        Region     Region      Region
 
 
+DNS-based routing can direct customers toward an appropriate region.
 
+      But we don't need this complexity for our first version.
+      
+      For now:
+                  Customer
+                     ↓
+                     DNS
+                     ↓
+                  Our application endpoint
 ================================================================================================================================================
+3.5 Next: CDN:
+                  Now here's an important question.                  
+                  Should the search API response go through the CDN?                  
+                  Be careful.                  
+                              A CDN is excellent for:
+                                                      Images
+                                                      CSS
+                                                      JavaScript
+                                                      Videos
+                                                      Static assets
+
+                  For example:                  
+                                    Product image
+                                         ↓
+                                    CDN
+                                         ↓
+                                    Customer
+                                    
+                  But search requests are dynamic: ?q=nike+running+shoes
+
+      So we should not blindly say:  "Everything goes through CDN."
+      
+      Instead, we distinguish:  
+                  Static content: → Excellent CDN candidates.
+                                    Images
+                                    CSS
+                                    JS
+                                    Product thumbnails
 
 
+                  Dynamic APIs: → Usually handled by application infrastructure.
+                                    Search
+                                    Cart
+                                    Checkout
+                                    Order
+                                    Payment
 
-
+Some dynamic GET APIs can be cached at a CDN under carefully controlled conditions, but that's a separate optimization.
 ================================================================================================================================================
+3.6 So why did we put CDN in our original diagram?
 
+            Because an e-commerce platform has enormous amounts of static content.
+            
+            Imagine:
+                        Nike shoe
+                           |
+                           ├── image1.jpg
+                           ├── image2.jpg
+                           ├── image3.jpg
+                           └── image4.jpg
 
+            Millions of users request these images.
+            
+            We want:           
+                              User
+                                ↓
+                              CDN
+                                ↓
+                              Image
+            
+            rather than:            
+                              User
+                                ↓
+                              Application
+                                ↓
+                              Object Storage
+            for every request.
+            
+So our architecture is better represented as:
+                                                     CUSTOMER
+                                                         |
+                                                  ┌──────┴──────┐
+                                                  ↓             ↓
+                                              Static         Dynamic
+                                              Content         APIs
+                                                  ↓             ↓
+                                                 CDN           DNS
+                                                  ↓             ↓
+                                           Object Storage     Backend
 
-
-================================================================================================================================================
-
-
-
-
+This is a much more precise mental model.
 ================================================================================================================================================
 
 
