@@ -491,24 +491,273 @@ That will make this a genuine L6 system-design upskilling program,
 rather than an Amazon architecture that you simply memorize.
 
 ================================================================================================================================================
+Great. Let's begin HLD 
+
+#1: Large-Scale E-commerce Platform, specifically at the level expected from a 9+ years Java backend engineer targeting Google DeepMind L6.
+
+We will build the system from requirements → architecture → trade-offs, rather than jumping straight into a microservices diagram.
+
+            HLD #1 — Design Amazon / Flipkart-like E-commerce System
+            Interview problem:
+
+                  Design a large-scale e-commerce platform like Amazon or Flipkart 
+                  where customers can browse products, search, add products to cart, 
+                  place orders, make payments, and track orders.
 
 
 ================================================================================================================================================
+1. First thing in an interview: clarify the scope
+            Don't immediately start drawing:                  
+                  Client → API Gateway → Microservices → Kafka → DB
+                  
+             That's actually one of the first things I want you to avoid.                  
+            An L6 candidate should first establish:
+                  
+                  What exactly are we designing?
+                  
+            A good opening would be:
+                  
+                  "I'll first clarify the functional scope and scale assumptions. 
+                  For this discussion, I'll focus on the customer purchase journey 
+                        — product discovery, product details, cart, checkout, order placement, 
+                              payment, inventory and order tracking.
 
+                        I'll treat seller onboarding, 
+                              logistics optimization and recommendation algorithms 
+                              as separate systems unless we need them for the core purchase flow."
+                  
+                  That's already a much stronger interview opening.
 ================================================================================================================================================
+2. Functional Requirements:
+      Let's identify the core business capabilities.
+      
+      Customer side:
+      
+                  The customer should be able to:
+                              1. Search products
+                              2. Browse products
+                              3. View product details
+                              4. Add product to cart
+                              5. Update cart
+                              6. Checkout
+                              7. Place order
+                              8. Make payment
+                              9. View order
+                              10. Track order
+
+      Seller side:
+
+            For the initial system:
+                              1. Add product
+                              2. Update product
+                              3. Update inventory
+
+We don't need to deeply design seller management yet.
 ================================================================================================================================================
+3. What is NOT in our initial scope?
+                  This is equally important.
+                  
+             We can explicitly exclude:
+                        Seller onboarding
+                        Warehouse optimization
+                        Delivery route optimization
+                        Recommendation ML models
+                        Advertising
+                        Customer support
+                        Returns/refunds
+                        Fraud detection
 
+
+Why?
+      Because an e-commerce platform is enormous.
+
+If you say:
+            "I'll design the complete Amazon."
+
+you've created an essentially unlimited problem.
+
+Instead:
+      Define a manageable boundary and then go deep.
+
+At L6, depth matters more than drawing 30 boxes.
 ================================================================================================================================================
+4. Identify the critical business flow
 
+The most important flow is:
+
+                  Search
+                     ↓
+                  Product
+                     ↓
+                  Cart
+                     ↓
+                  Checkout
+                     ↓
+                  Inventory
+                     ↓
+                  Payment
+                     ↓
+                  Order
+
+
+But notice something important.
+            The order of these operations isn't necessarily the same as the logical dependency.
+
+For example:
+            Customer clicks "Buy"
+                    ↓
+            Can I actually sell this product?
+                    ↓
+            Is inventory available?
+                    ↓
+            Can I reserve it?
+                    ↓
+            Can I collect payment?
+                    ↓
+            Can I create/confirm the order?
+
+This is going to become extremely important later.
 ================================================================================================================================================
+5. Separate the system into domains
 
+                  Instead of immediately thinking "microservices", 
+                  let's think in terms of business domains.
+                  
+                  We have:
+                                      E-COMMERCE
+                                          |
+                         ┌────────────────┼────────────────┐
+                         ↓                ↓                ↓
+                     Catalog           Search           Cart
+                         |
+                         ↓
+                     Inventory
+                         |
+                         ↓
+                      Checkout
+                         |
+                         ├───────────────┐
+                         ↓               ↓
+                      Payment          Order
+                                           |
+                                           ↓
+                                      Order Tracking
 
+Now let's understand why these are separate domains.
 ================================================================================================================================================
+6. Why separate Catalog and Inventory?
 
+            This is a very important design question.
+            
+            Suppose we have:
+                              Product:
+                                  iPhone 17
+                                  price = ₹80,000
+                                  description = ...
+                                  brand = Apple
+            This is catalog information.
+
+            But:
+                  Available quantity = 27
+
+                  is inventory information.
+
+These behave very differently.
+
+      Catalog            
+            Usually:            
+                        Read-heavy
+                        Relatively stable
+                        Searchable
+                        Can be cached heavily
+            
+      Inventory                  
+            Usually:      
+                        Highly dynamic
+                        Concurrency-sensitive
+                        Correctness-sensitive
+                        Frequent updates
+
+If we put them together:        Product DB
+                                       |
+                                       ├── description
+                                       ├── images
+                                       ├── price
+                                       └── inventory
+
+then heavy product reads can interfere with inventory operations.
+
+
+More importantly, the consistency requirements are different.
+
+      For example:
+                  It is usually acceptable if a product description takes a few seconds to propagate.
+
+      But:
+            Selling the same last item to two customers is a correctness problem.
+
+This distinction will later influence our:
+                              database choice
+                              caching strategy
+                              consistency model
+                              scaling strategy
+                              service boundaries
+
+This is exactly the kind of reasoning we want to practice.
 ================================================================================================================================================
+7. Let's identify the most important data
 
+      At a high level:      
+                  Product:
+                              Product
+                              ---------
+                              productId
+                              name
+                              description
+                              category
+                              brand
+                              price
+                              images
+                              attributes
+
+                  Inventory:
+                              Inventory
+                              ---------
+                              productId
+                              warehouseId
+                              availableQuantity
+                              reservedQuantity
+
+                  Cart:
+                              Cart
+                              ---------
+                              cartId
+                              userId
+                              items[]
+                  Order:
+                              Order
+                              ---------
+                              orderId
+                              userId
+                              items[]
+                              totalAmount
+                              status
+                              paymentStatus
+                              createdAt
+
+We don't need to finalize the schema yet.
+That's intentional.
+Don't prematurely optimize the data model before understanding the workload.
 ================================================================================================================================================
+8. Now comes the most important interview step: scale estimation
 
+                  Suppose the interviewer says:                  
+                                    "Assume this is a large-scale platform."
+                  
+                  We need numbers.                  
+                              Let's make reasonable assumptions.
+                  
+                  Users:
 ================================================================================================================================================
 
 ================================================================================================================================================
