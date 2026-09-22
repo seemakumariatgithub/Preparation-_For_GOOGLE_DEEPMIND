@@ -300,14 +300,80 @@ class Solution {
 
 
 ==========================================================================================================================================
+11. Let's trace "ABCCED"
 
+                  Grid:                  
+                          A B C E
+                          S F C S
+                          A D E E
+                  
+                  Word:  A B C C E D
+
+                Start at:  A                
+                Then: index = 0
+                Match: A              
+                Mark it visited.
+
+        Move to neighboring cells.
+        
+        Find: B
+        Then: C        
+        Then another adjacent: C        
+        Then: E        
+        Then: D
+
+        At that point: index == word.length()
+        ✅ Word found.
+
+Every recursive level represents:     one character successfully matched at one particular cell.
+==========================================================================================================================================
+
+12. Why do we restore the character?
+
+          Suppose we try:    A → B → C
+          and that branch eventually fails.
+
+          If we leave:
+                board[row][col] = '#'
+          then that cell would remain unavailable for completely unrelated branches.
+          
+          That would incorrectly turn: visited for current path
+          
+          into: visited forever
+          
+          So: board[row][col] = original;
+          
+          is not optional.
+
+It is the backtracking invariant:
+                    After a recursive branch returns, 
+                    the board must be restored to exactly the state
+                    it had before the branch was explored.
 
 
 
 ==========================================================================================================================================
+13. Why can't we use a global visited set?
 
+      A common mistake is:         Set<Cell> visited;      
+                                  and never removing cells.
 
+        That is wrong because another path must be allowed to reuse the cell.
+        
+          Example:
+          
+          Path 1:
+                  A → B → C
+                      ↓
+                    failure        
+        Path 2:
+                A → D → C
+        
+        C may be valid in Path 2 even though it was used in Path 1.
+        
+        Therefore:  visited state = current recursion path
 
+not: all cells ever visited
 ==========================================================================================================================================
 
 
