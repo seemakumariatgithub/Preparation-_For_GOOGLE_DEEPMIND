@@ -375,35 +375,224 @@ It is the backtracking invariant:
 
 not: all cells ever visited
 ==========================================================================================================================================
+14. Why do we increment index + 1?
+            
+            Unlike Combination Sum: backtrack(..., i)            
+            there is no reuse of the same logical character position in the word.
+            
+            Once the current cell has matched:  word[index]            
+            the next recursion must find:  word[index + 1]            
+            So: backtrack(..., index + 1);
+            
+            This gives another excellent pattern distinction:
+            
+                          Combination Sum
+                              → same candidate reusable
+                              → i
+                          
+                          Word Search
+                              → next character required
+                              → index + 1
+                          
+            But remember that the meaning of i and index is completely different.
+
+==========================================================================================================================================
+15. Complexity
+                  Let:                 
+                          R = number of rows
+                          C = number of columns
+                          L = word.length()
+                  
+                  We can start a search from each cell:     R×C
+
+                  At the first matched cell, there can be up to 4 directions.                  
+                  After moving to a neighboring cell, we cannot immediately return to the previous cell because it is marked visited.
+                  So beyond the first step, there are at most 3 new choices per level.
+                  
+                  Therefore the worst-case time complexity is approximately:   O(R⋅C⋅4⋅3^L−1)
+                  which is commonly simplified to: O(RC3^L)
+
+                  The exact bound can be lower depending on the grid and word.
+==========================================================================================================================================
+6. Space complexity
+                The maximum recursion depth is: L
+                
+                because we match one character per level.
+                
+                Since we're modifying the grid in place, we don't need a separate visited matrix.                
+                Therefore auxiliary space is:   O(L)
+                
+                excluding the input grid and output.
+
+                This is an important engineering trade-off:
+                
+                In-place marking :     Space = O(L)
+                Separate boolean[][] :  Space = O(RC + L)
+                
+                The separate matrix may be easier to reason about and is sometimes preferable when mutating caller-owned input is undesirable.
+==========================================================================================================================================
+17. Production-quality trade-off: mutate input or not?
+          
+          This is where I want you to start thinking beyond LeetCode.
+          
+          In an interview:  board[row][col] = '#';          
+                            is concise and memory efficient.
+          
+          In production code, you should ask:          
+                            Is the input object owned by this method, or is it shared with other callers?
+          
+          If the board is shared or immutable-by-contract, modifying it—even temporarily—may violate API expectations.
+          
+          Then I'd use: boolean[][] visited     instead.
+          
+          So an L6-level discussion is not:   "In-place marking is better."
+          
+          It is:
+          
+                  "In-place marking minimizes auxiliary memory but mutates input temporarily. 
+                    A separate visited structure preserves input immutability at the cost of O(RC) additional memory.
+                    The right choice depends on API ownership and concurrency expectations."
+          
+          That's the engineering judgment I want you to practice.
+==========================================================================================================================================
+18. Stronger pruning:
+                  There's an additional optimization you should know.
+                  
+                  Before DFS, we can count character frequencies in:
+                  
+                            board
+                            word
+                  
+                  If the board doesn't contain enough occurrences of some required character, return false immediately.
+                  
+                  For example:
+                                word = "AAB"                  
+                                but the board contains only one A.
+                                Impossible.
+
+                    This is a valid global feasibility pruning.
+
+==========================================================================================================================================
+20. Correctness argument
+              For L6-level preparation, be comfortable proving why the algorithm is correct.              
+              Claim              
+                      The algorithm returns true iff the word exists as a valid path.
+              
+                    Why no valid path is missed
+              
+                From each current cell, we recursively examine all four legal directions.              
+               Therefore, every possible adjacent path is explored unless it violates a rule:
+              
+                          outside grid,
+                          wrong character,
+                          reused cell.
+              
+              Those are exactly the invalid transitions.
+
+==========================================================================================================================================
+21. The invariant:
+
+      This is perhaps the most important sentence for your L6 preparation:
+                
+                At recursion state (row, col, index), the cells selected along the current path 
+                spell word[0..index-1], and (row, col) is the next cell being considered for word[index].
+                
+       After returning: the grid's visited state is restored
+
+==========================================================================================================================================
+22. Compare this with Palindrome Partitioning:                  
+                  This is an important progression.
+                  
+                  Palindrome Partitioning
+                          State:
+                          start                  
+                  Choice:
+                          choose end boundary                  
+                  Constraint:
+                              substring must be palindrome
+
+                  Word Search
+                        State:
+                        row + col + index                  
+                  Choice:
+                        up/down/left/right                  
+                  Constraint:
+                          character must match + cell cannot be reused
+                  
+                  The backtracking template hasn't changed.                  
+                  Only the state and legal-choice function changed.                  
+                  That's exactly the kind of pattern abstraction we want at L6.
+
+==========================================================================================================================================
+23. Compare the major backtracking problems you've learned:
+
+| Problem                 | State                 | Choices            | Main constraint               |
+| ----------------------- | --------------------- | ------------------ | ----------------------------- |
+| Subsets                 | `index, path`         | include/exclude    | none                          |
+| Subsets II              | `start, path`         | choose candidate   | duplicate siblings            |
+| Combination Sum         | `start, target, path` | choose candidate   | target                        |
+| Combination Sum II      | `start, target, path` | choose candidate   | target + duplicates           |
+| Generate Parentheses    | `open, close, path`   | `(` / `)`          | balance                       |
+| Letter Combinations     | `index, path`         | mapped chars       | digit mapping                 |
+| Palindrome Partitioning | `start, path`         | substring boundary | palindrome                    |
+| Word Search             | row, col, index**     | 4 directions       | character + no cell reuse     |
+
+The reusable abstraction is:
+                                STATE
+                                   ↓
+                                LEGAL CHOICES
+                                   ↓
+                                CHOOSE
+                                   ↓
+                                RECURSE
+                                   ↓
+                                UNDO
+==========================================================================================================================================
+24. Where DP might enter later
+          
+          Word Search is primarily a backtracking/DFS problem.          
+          But there is a deeper question:  Can memoization help?
+          
+          Potentially, if the state can repeat.          
+          A naive state might appear to be:  (row, col, index, visitedSet)
+          
+          The problem is that the visited set is part of the state, and there can be many possible visited configurations.
+          
+          For a general grid, memoizing only: (row, col, index)          
+                      is not automatically correct, because reaching the same cell/index with different 
+                      previously visited cells can produce different future possibilities.
+          
+          This is a very important DP lesson:          
+                        Before memoizing a recursive state, you must prove that the proposed state 
+                        contains all information needed to determine future behavior.
+          
+          That's exactly the kind of mistake we want to avoid when we transition from backtracking into backtracking + memoization.
 
 
 ==========================================================================================================================================
+25. L6-level interview answer
+      A strong answer would sound like:
+      
+                      "I model Word Search as DFS with backtracking over a 2D state space.
+  
+                        The recursive state is (row, col, index), where index identifies the next 
+                        character of the word that must be matched at the current cell. 
 
-==========================================================================================================================================
+                        From a valid cell, I explore up to four neighbors. 
+                        The current cell is marked as visited before recursion 
+                        and restored afterward, making visitation path-local rather than global. 
 
-==========================================================================================================================================
+                        Invalid transitions are pruned when the cell is out of bounds, already used, 
+                        or doesn't match the required character. 
+                          
+                        A successful state is reached once we've matched every character in the word. 
+                        
+                        The worst-case complexity is O(RC·3^L), with O(L) auxiliary stack space when visited state is
+                        represented by in-place marking. 
 
-==========================================================================================================================================
-
-
-==========================================================================================================================================
-
-
-==========================================================================================================================================
-
-
-==========================================================================================================================================
-
-
-==========================================================================================================================================
-
-
-==========================================================================================================================================
-
-
-
-==========================================================================================================================================
-
+                        A production implementation could instead use a separate visited matrix if mutating the input is undesirable."
+      
+      That is the level of explanation we're aiming for.
 
 ==========================================================================================================================================
 
