@@ -1,1 +1,16 @@
+Where we go next:
+                  The next problem in our sequence should be N-Queens.
+                  It builds directly on Word Search but raises the state-management challenge significantly:
+
+Word Search:
+          → one moving path through a grid
+
+N-Queens:
+        → construct a global configuration row by row
+        → maintain column/diagonal constraints
+        → aggressive pruning
+        → O(1) constraint checks using sets/bitmasks
+
+That will be a particularly useful L6 exercise because we can go beyond the basic solution 
+into constraint representation, bitmask optimization, branching-factor reduction, and correctness invariants.
 
