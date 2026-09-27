@@ -2560,24 +2560,567 @@ We'll answer the difficult questions:
                   How do we prevent stale product prices?
                   How does a product update propagate to Search?
 ================================================================================================================================================
+Step 4 — Product Catalog: Database, Cache & Consistency
 
+            We now have:            
+                        Customer
+                           ↓
+                        API Gateway
+                           ↓
+                        Product Service
+                           ↓
+                        ???
+            
+            The key question is:            
+                        How should Product Service store and serve 100M+ products at high read volume?
+            
+            We need to make this decision based on access patterns, not technology preference.
 
 
 ================================================================================================================================================
+4.1 First understand the Product domain
 
+                  A product might look like:                  
+                                                Product
+                                                ────────────────────────
+                                                productId
+                                                title
+                                                description
+                                                brand
+                                                categoryId
+                                                price
+                                                currency
+                                                attributes
+                                                status
+                                                createdAt
+                                                updatedAt
+                  
+                  But there is an important design question.
+                  
+                  Should we put everything into one table?
+
+                  For example:
+                  
+                                    Product
+                                     ├── Product metadata
+                                     ├── Images
+                                     ├── Reviews
+                                     ├── Inventory
+                                     ├── Seller information
+                                     ├── Pricing history
+                                     └── Recommendations
+                                    
+                  I would not do that.
+                  
+                  Why?
+                  
+                  Because these entities have very different:                
+                                    access patterns
+                                    update frequencies
+                                    ownership
+                                    consistency requirements
+                                    scaling characteristics
+                  
+                  Instead:
+                                      Product
+                                         |
+                          ┌──────────────┼──────────────┐
+                          ↓              ↓              ↓
+                      Catalog          Pricing       Inventory
+                          |
+                          ↓
+                       Images
+                          |
+                          ↓
+                      Reviews
+
+This is a domain-modeling decision before it is a database decision.
+================================================================================================================================================
+4.2 What is the source of truth?
+                  This is one of the most important concepts.
+                  
+                  Suppose we have:
+                                    Product DB
+                                    Redis
+                                    Search Index
+                                    CDN
+                  Which one owns the truth?
+                  
+                  For product metadata:                  
+                                          Transactional Product DB is authoritative.
+            So: 
+                   Product Service
+                          |
+                          ↓
+                    Product DB
+                   SOURCE OF TRUTH
+                          |
+                ┌─────────┴─────────┐
+                ↓                   ↓
+             Redis              Search Index
+             Cache               Read Model
+
+            Redis and Search are derived representations.
+            
+            This gives us a powerful rule:            
+                        Never allow a cache or search index to become the accidental source of truth for business-critical data.
+================================================================================================================================================
+4.3 Why PostgreSQL?                  
+                  Let's consider our requirements.                  
+                  Product metadata has:                  
+                                          structured data
+                                          relationships
+                                          transactions for updates
+                                          strong correctness requirements for authoritative data
+                                          indexing requirements
+                                          well-defined schema
+                  
+                  PostgreSQL is therefore a reasonable initial choice.
+
+For example:
+            CREATE TABLE product (
+                product_id BIGINT PRIMARY KEY,
+                title VARCHAR(500) NOT NULL,
+                description TEXT,
+                category_id BIGINT NOT NULL,
+                brand VARCHAR(100),
+                price NUMERIC(12,2),
+                currency CHAR(3),
+                status VARCHAR(30),
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP
+            );
+
+We can add indexes based on actual access patterns.
+
+For example:
+            CREATE INDEX idx_product_category
+            ON product(category_id);
+
+But here's an important L6 point:
+
+An index is not automatically good because it makes reads faster.
+
+Every additional index increases:
+                        storage
+                        write cost
+                        maintenance cost
+
+So indexes should correspond to actual query patterns.
 
 
 ================================================================================================================================================
+4.4 Why not MongoDB?
+      This is a good interviewer question.                  
+                  You shouldn't answer:                  
+                                    "PostgreSQL is better than MongoDB."
+                  
+                  That's too absolute.
+                  
+                  Instead:
+                  
+                  "Both could work. 
+                  For the authoritative product catalog, I'd initially prefer PostgreSQL 
+                  because the data is structured and relational, and we benefit from transactional guarantees and mature indexing. 
 
+                  If the product schema were highly heterogeneous across categories or had significantly different access patterns,
+                  a document store could become attractive."
+
+
+That's the level of answer we're looking for.
+
+      The important lesson:      
+                              Database selection follows workload and consistency requirements.
+      
+      Not:      
+            Java → PostgreSQL
+            Microservices → MongoDB
+================================================================================================================================================
+4.5 Why not use Elasticsearch as the Product DB?
+
+                  This is another important question.
+                  
+                  Search index:
+                                    Product
+                                       ↓
+                                    OpenSearch
+
+                  could technically store product documents.
+                  
+                  But I would not make it our authoritative transactional store.
+                  
+                  Why?                  
+                        Search engines are optimized for:                        
+                                          Search
+                                          Filtering
+                                          Ranking
+                                          Text analysis
+                                          Aggregations
+                  
+                  Our authoritative catalog needs:
+                                          Transactional updates
+                                          Data integrity
+                                          Reliable persistence
+                                          Business state
+
+                  So:
+                        PostgreSQL
+                             ↓
+                        SOURCE OF TRUTH
+                        
+                        OpenSearch
+                             ↓
+                        SEARCH-OPTIMIZED READ MODEL
+================================================================================================================================================
+4.6 Now the big problem: Read traffic
+
+                  We estimated roughly:   ~20K+ peak read requests/sec
+                  
+                  We don't want every request to hit PostgreSQL.
+                  
+                  So we introduce:
+
+      Redis Cache      
+            Architecture:
+                             Product Service
+                                   |
+                                   ↓
+                                Redis
+                               /     \
+                            HIT       MISS
+                             |          |
+                             ↓          ↓
+                         Response   PostgreSQL
+                                        |
+                                        ↓
+                                     Redis
+
+This is the cache-aside pattern.
+================================================================================================================================================
+4.7 Cache-aside — read path
+                  
+            Customer asks:                  
+                  GET /products/P123
+                  
+            Product Service:
+                  
+                  1. Check Redis
+                  2. If found → return
+                  3. If not found:
+                         ↓
+                     Query PostgreSQL
+                         ↓
+                     Put result in Redis
+                         ↓
+                     Return
+                  
+            Pseudo-code:                  
+                  public Product getProduct(long productId) {
+                  
+                      String key = "product:" + productId;                  
+                      Product cached = redis.get(key);                  
+                      if (cached != null) {
+                          return cached;
+                      }
+                  
+                      Product product = productRepository.findById(productId);                  
+                      if (product != null) {
+                          redis.set(key, product, TTL);
+                      }                  
+                      return product;
+                  }
+                  
+                  The important thing isn't the Java syntax.
+                  It's the flow:                  
+                                    Cache
+                                     ↓
+                                    MISS
+                                     ↓
+                                    DB
+                                     ↓
+                                    Cache
+                                     ↓
+                                    Response
+================================================================================================================================================
+4.8 Why cache-aside?
+                  Because the application explicitly controls:
+                  
+                              what gets cached
+                              when it gets cached
+                              TTL
+                              invalidation
+                              fallback behavior
+                  
+                  It also means the database remains the source of truth.
 
 ================================================================================================================================================
+4.9 Cache hit ratio
 
+                        Suppose:  20,000 product reads/sec
+                        
+                        and our cache hit ratio is:  95%
+                        
+                        Then database traffic becomes approximately:                        
+                                    20,000 × 5% = 1,000 requests/sec
+                        
+                        instead of: 20,000 requests/sec
 
+                        That's a 20× reduction in database read traffic.
+                        
+                        This is why capacity estimation matters.
+                        
+                        We can now quantify the architectural benefit.
+================================================================================================================================================
+4.10 But what happens on cache miss?
+
+                  Here's an L6-level problem.
+                  
+                  Suppose a very popular product suddenly gets requested by:                  
+                                    100,000 users
+                  
+                  The cache entry expires.
+                  
+                  Now:                  
+                                    100,000 requests
+                                           ↓
+                                    Redis MISS
+                                           ↓
+                                    100,000 DB queries
+                  
+                  This is called a cache stampede / thundering herd problem.
+                  
+                  It can overload the database.
+
+Possible solutions include:
+
+            1. Request coalescing:            
+                        Only one request loads the data:
+            
+                        Request A ─┐
+                        Request B ─┤
+                        Request C ─┼──→ one DB request
+                        Request D ─┤
+                        Request E ─┘
+            
+            Others wait for the result.
+
+            2. Distributed locking:            
+                        Conceptually:                        
+                                    Redis lock
+                                       ↓
+                                    Only one loader
+                                       ↓
+                                      DB
+                                       ↓
+                                    Populate cache
+
+            3. TTL jitter            
+                        Instead of:            
+                              TTL = exactly 60 seconds
+                        
+                        use something like:                        
+                              TTL = 55–65 seconds
+                        
+                        so millions of entries don't expire simultaneously.
+
+            4. Background refresh            
+                              Refresh popular entries before expiration.
+                              
+                              These are very useful L6 follow-up topics.
+================================================================================================================================================
+4.11 Cache invalidation
+                  Now the famous question:                  
+                        "How do you invalidate the cache?"
+                  
+                  Suppose:                 
+                              Price = ₹5,000  is cached.
+                  
+                  Seller changes it:    ₹5,000 → ₹4,500
+                  
+                  If Redis still contains: ₹5,000
+                  
+                  customers may see stale information.
+
+                  A common approach:                 
+                                          Update DB
+                                             ↓
+                                          Invalidate cache
+                  
+                  For example:                  
+                                    UPDATE product
+                                       ↓
+                                    DELETE Redis product:P123
+                  
+                  Next read:
+                              Redis MISS
+                                 ↓
+                                DB
+                                 ↓
+                              ₹4,500
+                                 ↓
+                              Redis
 
 ================================================================================================================================================
+4.12 But there's a subtle failure scenario
 
+                  Suppose:                  
+                              1. Update DB → success
+                              2. Delete Redis → failure
+                  
+                  Now:                  
+                        DB = ₹4,500
+                        Redis = ₹5,000
+                  
+                  We have inconsistency.
+                  
+                  What do we do?
+                  
+                  This is where there isn't one universal answer.
+                  
+                  We can use mechanisms such as:                  
+                              TTL as a bounded-staleness safety mechanism
+                              reliable invalidation events
+                              CDC
+                              transactional outbox
+                              versioned cache entries
+                              asynchronous cache invalidation
+                  
+                  For our architecture, an interesting approach is:
 
+                                    Product Service
+                                          |
+                                          ↓
+                                     PostgreSQL
+                                          |
+                                          ↓
+                                    Outbox/Event
+                                          |
+                                          ↓
+                                         Kafka
+                                          |
+                                          ├────────→ Search Index
+                                          |
+                                          └────────→ Cache Invalidation
 
+Now updates can propagate asynchronously.
+================================================================================================================================================
+4.13 Transactional Outbox — important L6 concept
+
+                  Here's a classic distributed-systems problem.
+                  
+                  Suppose Product Service does:                  
+                                                DB UPDATE
+                                                   +
+                                                Kafka publish
+                  
+                  These are two separate systems.
+
+                  What if:                  
+                        DB update succeeds
+                        Kafka publish fails
+                  
+                  Then:                  
+                        Database = new product
+                        Search index = old product
+                  
+                  The service has lost the event.
+
+                  One solution is the Transactional Outbox Pattern.
+                  
+                        Within the same DB transaction:                        
+                                                      BEGIN TRANSACTION
+                                                            
+                                                            UPDATE product
+                                                            SET price = 4500;
+                                                            
+                                                            INSERT INTO outbox_event
+                                                            VALUES (...);
+                                                            
+                                                      COMMIT
+                        
+                        Now both are persisted atomically.
+
+                        Then:                       
+                                    Outbox
+                                       ↓
+                                    Publisher
+                                       ↓
+                                    Kafka
+                                       ↓
+                                    Search Indexer
+                        
+                        Architecture:
+                                                     Product Service
+                                                           |
+                                                  ┌────────┴─────────┐
+                                                  ↓                  ↓
+                                             Product Table       Outbox Table
+                                                  |                  |
+                                                  └──── same DB ─────┘
+                                                           |
+                                                           ↓
+                                                      Outbox Worker
+                                                           |
+                                                           ↓
+                                                         Kafka
+                                                      /         \
+                                                     ↓           ↓
+                                                Search Index   Cache
+
+This is a very strong L6 discussion because we're addressing a real distributed consistency problem rather than simply adding Kafka.
+================================================================================================================================================
+4.14 Read replicas:
+                  Now suppose our PostgreSQL database receives:
+                  
+                              1K direct reads/sec
+                  
+                  after caching.
+                  
+                  As the system grows, we might still want to separate read and write workloads.
+                  
+                  Architecture:
+                                   Product Service
+                                         |
+                                ┌────────┴────────┐
+                                ↓                 ↓
+                             WRITE              READ
+                                ↓                 ↓
+                           PostgreSQL          Read Replica
+                             Primary              |
+                                                  |
+                                               Read Replica 2
+
+                  Writes:                  
+                              Product Service
+                                    ↓
+                              Primary
+                  
+                  Reads:                  
+                              Product Service
+                                    ↓
+                              Replica
+                  
+                  This can scale read traffic.
+                  
+                  But now we introduce a new problem:
+                  
+                  Replication lag
+                  
+                  Suppose:
+                  
+                  Primary:
+                  Price = ₹4500
+                  
+                  but replica hasn't caught up:
+                  
+                  Replica:
+                  Price = ₹5000
+                  
+                  Immediately after an update, a read might return stale data.
+                  
+                  So read replicas aren't "free scalability."
+                  
+                  They introduce a consistency trade-off.
 ================================================================================================================================================
 
 
