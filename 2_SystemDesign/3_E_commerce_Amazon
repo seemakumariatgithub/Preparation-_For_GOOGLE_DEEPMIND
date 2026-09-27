@@ -1777,7 +1777,766 @@ So our architecture is better represented as:
 
 This is a much more precise mental model.
 ================================================================================================================================================
+3.7 Now the dynamic request reaches the Load Balancer
+            Our search request reaches our backend infrastructure.
+            
+            We may have:
+                                  Internet
+                                     |
+                                     ↓
+                               Load Balancer
+                                /    |    \
+                               /     |     \
+                              ↓      ↓      ↓
+                           Server  Server  Server
 
+            Why?
+            
+            Because we don't want:              All 25K RPS
+                                                      ↓
+                                                One server
+
+            Instead:
+                                       25K RPS
+                                          ↓
+                                    Load Balancer
+                                          ↓
+                               ┌───────┬───────┬───────┐
+                               ↓       ↓       ↓
+                              App1    App2    App3
+
+================================================================================================================================================
+3.8 What exactly is the Load Balancer doing?
+
+                  At a high level:                  
+                                    It distributes incoming traffic across healthy backend instances.
+                  
+                  Suppose:                  
+                              Search Service:                              
+                                    Instance A
+                                    Instance B
+                                    Instance C
+                                    Instance D
+                  
+                  Incoming requests:
+                              Request 1 → A
+                              Request 2 → C
+                              Request 3 → B
+                              Request 4 → D
+
+            But it's not simply:            
+                        "Send request randomly."
+            
+            The load balancer can consider:            
+                        health
+                        connection state
+                        load
+                        routing rules
+                        availability zone
+                        service endpoint
+================================================================================================================================================
+3.9 Health checking:                   
+                  Suppose:                  
+                              Instance A → healthy
+                              Instance B → healthy
+                              Instance C → crashed
+                  
+                  The load balancer periodically checks health.
+                  
+                  For example:      GET /health
+                  
+                  If C stops responding correctly:                  
+                                    LB
+                                     |
+                                     ├── A ✓
+                                     ├── B ✓
+                                     └── C ✗
+                  
+                  Then:                 
+                              New traffic
+                                 ↓
+                              A / B
+                  
+                  rather than:                  
+                              New traffic → C
+                  
+                  This gives us a basic form of failure isolation.
+================================================================================================================================================
+3.10 Why multiple instances?
+
+            Now connect this back to our capacity estimate.            
+            We estimated:  ~25K peak RPS
+            
+            Suppose one Search Service instance can safely handle:  1,000 RPS
+            
+            Then:           
+                        25K / 1K  = 25 instances
+            
+            We wouldn't deploy exactly 25.
+
+            Maybe:      30–35 instances
+            
+            to provide:            
+                              headroom
+                              failure tolerance
+                              rolling deployments
+                              traffic spikes
+            
+            Now our capacity calculation has directly influenced infrastructure.
+            
+            That's exactly what we want.
+================================================================================================================================================
+3.11 What happens if one instance fails?
+
+                  Suppose:  30 instances                  
+                  and:   Instance #17 crashes                  
+                  We don't want:  Search → FAILURE
+                  
+                  We want:                  
+                                Load Balancer
+                               / / / | \ \ \
+                              ↓ ↓ ↓  X  ↓ ↓ ↓
+                                   dead
+
+            The load balancer stops routing new traffic to the unhealthy instance.
+            
+            This is one of the fundamental principles of scalable systems:
+            
+            Don't depend on a single application instance.
+================================================================================================================================================
+3.12 Now the interesting question: API Gateway
+
+                  We now have:                  
+                              Client
+                                ↓
+                              Load Balancer
+                                ↓
+                              Search Service
+                  
+                  Why introduce:  API Gateway between them?
+                  This is where many candidates say:  "API Gateway is used for routing."
+                  
+                  That's true—but incomplete.  
+
+                  Let's understand the problem.                  
+                  Our platform has:                  
+                                    Catalog Service
+                                    Search Service
+                                    Cart Service
+                                    Inventory Service
+                                    Order Service
+                                    Payment Service
+                                    User Service
+                  
+                  The client shouldn't necessarily need to know:
+                  
+                              search-service.internal:8080
+                              cart-service.internal:8081
+                              inventory-service.internal:8082
+                              ...
+                  
+                  Instead:                  
+                                   API Gateway
+                                        |
+                         ┌──────────────┼───────────────┐
+                         ↓              ↓               ↓
+                      Search           Cart           Order
+                      Service         Service         Service
+                  
+                  The gateway becomes the external API entry point.
+
+================================================================================================================================================
+3.13 What does API Gateway actually do?
+
+Potential responsibilities:            
+                              1. Routing:
+                                                /api/search/*
+                                                        ↓
+                                                Search Service
+                                                
+                                                /api/cart/*
+                                                        ↓
+                                                Cart Service
+                                                
+                                                /api/orders/*
+                                                        ↓
+                                                Order Service
+
+                              2. Authentication:                              
+                                                      For example:
+                                                      
+                                                      JWT
+                                                       ↓
+                                                      API Gateway
+                                                       ↓
+                                                      Validate token
+                              3. Rate limiting:                              
+                                                Suppose one client sends:                                                
+                                                            100,000 requests/sec
+                                                We can enforce:                                                
+                                                            100 requests/sec                                                
+                                                depending on the policy.
+
+                              4. Request validation:                              
+                                          For example:                                          
+                                                      Malformed request
+                                                            ↓
+                                                      Gateway
+                                                            ↓
+                                                      400 Bad Request
+
+                              5. Observability:                              
+                                                It can capture:                                                      
+                                                            requestId
+                                                            userId
+                                                            route
+                                                            latency
+                                                            status code
+
+                              6. API versioning:                              
+                                          For example:                                          
+                                                      /api/v1/products
+                                                      /api/v2/products
+================================================================================================================================================
+3.14 But should every request go through an API Gateway?
+            
+            This is an important L6 discussion.            
+            Not necessarily.
+            
+            For example, internal service-to-service communication might use:            
+                              Service A
+                                 ↓
+                              Service B
+                  
+            rather than:
+            
+                              Service A
+                                 ↓
+                              Public API Gateway
+                                 ↓
+                              Service B
+            
+            Why?
+            
+            Because forcing internal traffic through a public gateway can introduce:
+            
+                              additional latency
+                              unnecessary hops
+                              a bottleneck
+                              unnecessary coupling
+            
+            A more realistic architecture might be:
+
+                                  Internet
+                                      ↓
+                                API Gateway
+                                      ↓
+                                Public Services
+                                      ↓
+                                Internal Services
+
+            Internal traffic can use internal service discovery/load balancing.
+================================================================================================================================================
+3.15 Now our search request
+
+            Let's put everything together.
+            
+            Customer searches:  Nike running shoes
+            
+            Request:  GET /api/v1/search?q=nike%20running%20shoes
+            
+            Flow:
+                        Customer
+                           |
+                           | HTTPS
+                           ↓
+                          DNS
+                           |
+                           ↓
+                    Load Balancer
+                           |
+                           ↓
+                      API Gateway
+                           |
+                           ↓
+                     Search Service
+                           |
+                           ↓
+                      Search Index
+                           |
+                           ↓
+                        Results
+
+Now we're at the most interesting part.
+================================================================================================================================================
+3.16 Why don't we query PostgreSQL?
+
+                  Suppose our product database has:  100M products
+                  
+                  Customer searches:   Nike running shoes
+                  
+                  If we use PostgreSQL like:
+                              SELECT *
+                              FROM product
+                              WHERE name LIKE '%Nike%'
+                                 OR description LIKE '%running shoes%';
+
+                  this is not what a large-scale search system should rely on.
+                  
+                  Why?  :   Because product search requires capabilities such as:
+
+                                                Full-text search
+                                                Tokenization
+                                                Relevance ranking
+                                                Fuzzy matching
+                                                Typo tolerance
+                                                Filters
+                                                Facets
+                                                Autocomplete
+                                                Sorting
+
+For example, customer types:     nik runing shooes
+
+A dedicated search engine can potentially interpret that much better than a basic relational query.
+================================================================================================================================================
+3.17 Enter Search Index:
+
+                  We introduce:                  
+                                    Search Service
+                                          ↓
+                              OpenSearch / Elasticsearch
+                  
+                  The search index contains a searchable representation of our product data.
+
+
+                  Conceptually:                  
+                                    Product DB
+                                        |
+                                        | indexing pipeline
+                                        ↓
+                                    Search Index
+                  
+                  The important point:                  
+                                    Search index is not necessarily our source of truth.
+                  
+                  This is critical.
+                  
+                  We can have:
+                                      Product Data
+                                           |
+                                  ┌────────┴────────┐
+                                  ↓                 ↓
+                              Product DB       Search Index
+                             Source of truth    Read model
+
+            The database owns the authoritative product data.
+            
+            The search index is optimized for search.
+
+================================================================================================================================================
+3.18 How does the Search Index get updated?
+
+                  This is where our earlier Kafka discussion becomes useful.
+                  
+                  One possible architecture:
+                                                Product Service
+                                                      |
+                                                      ↓
+                                                 Product DB
+                                                      |
+                                                      ↓
+                                                 CDC / Event
+                                                      |
+                                                      ↓
+                                                    Kafka
+                                                      |
+                                                      ↓
+                                                Search Indexer
+                                                      |
+                                                      ↓
+                                                OpenSearch
+
+                  So when:   Product price changes
+                  
+                  we can eventually update:  Search Index
+
+                  This creates:   Eventual consistency between Product DB and Search Index.
+================================================================================================================================================
+3.19 Is eventual consistency acceptable here?
+
+            Usually, yes, depending on the field and business requirement.
+            
+            Suppose seller changes:
+                                    Product name:
+                                    "Running Shoes"
+                                            ↓
+                                    "Premium Running Shoes"
+                                    
+           If the search index updates after:   500 ms    that's usually acceptable.
+
+            But imagine inventory:   Stock = 1
+            
+            and search index says:   Stock = 1
+            
+            while actual inventory is:  Stock = 0
+            
+            We should not use the search index as the authoritative source for purchasing decisions.
+
+            This gives us a fundamental design rule:            
+                              Search is optimized for discovery; 
+                              transactional services remain authoritative for business-critical state.
+
+================================================================================================================================================
+3.20 Our search architecture now
+
+We have:
+                         CUSTOMER
+                            |
+                            ↓
+                          DNS
+                            |
+                            ↓
+                     Load Balancer
+                            |
+                            ↓
+                      API Gateway
+                            |
+                            ↓
+                     Search Service
+                            |
+                            ↓
+                  ┌─────────────────┐
+                  │ Search Cluster  │
+                  │                 │
+                  │   Shard 1       │
+                  │   Shard 2       │
+                  │   Shard 3       │
+                  │   Replica(s)    │
+                  └─────────────────┘
+
+And separately:
+                    Product Service
+                          |
+                          ↓
+                      Product DB
+                          |
+                          ↓
+                        Kafka
+                          |
+                          ↓
+                    Search Indexer
+                          |
+                          ↓
+                    Search Cluster
+================================================================================================================================================
+3.21 Why do we need shards?
+
+            Suppose our search index becomes enormous.
+            
+            Instead of:  One giant search server            
+                         we can partition the index.
+
+            Conceptually:
+                            Search Index
+                                 |
+                   ┌─────────────┼─────────────┐
+                   ↓             ↓             ↓
+                Shard 1        Shard 2       Shard 3
+
+            Each shard owns a subset of the data.            
+            Now queries can be distributed.
+            
+            For example:
+                        Search request
+                             |
+                             ↓
+                        Search coordinator
+                             |
+                         ┌───┼────┐
+                         ↓   ↓    ↓
+                        S1  S2    S3
+                         |   |     |
+                         └───┼─────┘
+                             ↓
+                         Merge results
+                             ↓
+                        Return top 20
+
+This is called a scatter-gather pattern.
+================================================================================================================================================
+3.22 Why replicas?
+                  Suppose:   Shard 1                  
+                              is unavailable.
+                  
+                  We don't want search to completely fail.
+
+                  So:                  
+                        Shard 1 Primary
+                               |
+                               └── Replica
+                  
+                  Conceptually:                  
+                                  Search
+                                     |
+                              ┌──────┴──────┐
+                              ↓             ↓
+                           Primary        Replica
+
+                  Replication improves:                  
+                              availability
+                              read scalability
+                              failure tolerance
+                  
+                  Again:                  
+                         Replication is not free.
+                  
+                  It increases:                  
+                              storage
+                              write overhead
+                              operational complexity
+                  
+                  So we use it because availability/read requirements justify it.
+================================================================================================================================================
+3.23 The complete search request
+                  Now let's trace the request from beginning to end.
+                  
+                  Step 1                  
+                              Customer:                              
+                                    " Nike running shoes "
+                  Step 2                  
+                              DNS resolves:                              
+                                    www.ecommerce.com
+                  Step 3                  
+                              Request reaches the edge/load-balancing infrastructure.
+                  
+                  Step 4                  
+                              API Gateway:                              
+                                    /api/v1/search
+
+                              routes to:                              
+                                    Search Service
+                  Step 5                  
+                              Search Service queries:
+                                    Search Cluster
+
+                  Step 6                  
+                              Search cluster performs:
+                                                      Query
+                                                       ↓
+                                                      Shard selection
+                                                       ↓
+                                                      Search
+                                                       ↓
+                                                      Rank
+                                                       ↓
+                                                      Merge
+                  Step 7                  
+                              Top results return:
+                                                {
+                                                  "products": [
+                                                    {
+                                                      "productId": "P123",
+                                                      "name": "Nike Running Shoes",
+                                                      "price": 4999
+                                                    }
+                                                  ]
+                                                }
+
+                  Step 8                  
+                              Response travels back:                              
+                                                      Search Cluster
+                                                            ↓
+                                                      Search Service
+                                                            ↓
+                                                      API Gateway
+                                                            ↓
+                                                      Load Balancer
+                                                            ↓
+                                                      Customer
+================================================================================================================================================
+3.24 But we have an important problem
+                  
+                  What happens if 1 million users search for the same query?
+                  
+                  For example:   "iPhone 17"
+                  
+                  Every request goes:                  
+                                          Client
+                                           ↓
+                                          Gateway
+                                           ↓
+                                          Search Service
+                                           ↓
+                                          Search Cluster
+                  
+                  We might be unnecessarily repeating the same expensive query.                  
+                  This brings us to our next architectural decision:   Search caching
+                  
+                  We could potentially have:
+
+                                                  Search Request
+                                                        |
+                                                        ↓
+                                                      Redis
+                                                     /     \
+                                                  HIT       MISS
+                                                   |          |
+                                                   ↓          ↓
+                                                Response   Search Index
+                                                              |
+                                                              ↓
+                                                           Redis
+
+                  But should we cache search results?                  
+                                    Sometimes yes, sometimes no.
+
+                  This is exactly the kind of question an L6 interviewer may ask.
+                  
+                  For:      "nike running shoes"                  
+                            a short TTL cache may be useful.
+                  
+                  But for highly personalized searches:                  
+                                    "recommended products for user X"                  
+                                    simple shared caching becomes much less effective.
+                  
+                  And if inventory/price changes very frequently, 
+                  we need to carefully choose what is cached and for how long.
+================================================================================================================================================
+3.25 What we've learned from this one request
+
+            Starting from one simple requirement:            
+                        "Search for a product."
+            
+            we derived:
+                               SEARCH
+                                 |
+                   ┌─────────────┴─────────────┐
+                   ↓                           ↓
+               Static Data                 Dynamic API
+                   ↓                           ↓
+                  CDN                        DNS
+                                               ↓
+                                         Load Balancer
+                                               ↓
+                                         API Gateway
+                                               ↓
+                                         Search Service
+                                               ↓
+                                         Search Cluster
+                                               ↓
+                                        Search Results
+
+            And behind the scenes:
+                                    Product Service
+                                          ↓
+                                     Product DB
+                                          ↓
+                                     Kafka / CDC
+                                          ↓
+                                     Search Indexer
+                                          ↓
+                                     Search Cluster
+
+================================================================================================================================================
+.26 L6 interview questions you should now be able to answer
+
+                  Before moving on, these are the questions I want you to be comfortable with:
+                  
+                  Q1  
+                        Why do we need DNS?                  
+                              → Name resolution and abstraction from changing infrastructure.
+                  
+                  Q2                  
+                        Is DNS a load balancer?                        
+                                    → Not in the same sense. DNS resolves names and can participate in traffic routing;
+                                    a load balancer distributes actual traffic among backend targets.
+                  
+                  Q3                  
+                        Why CDN?                        
+                                    → Primarily for static/large read-heavy content such as product images, 
+                                          reducing origin load and latency.
+                  Q4                  
+                        Why Load Balancer?                        
+                                    → Distribute traffic among healthy application instances 
+                                          and enable horizontal scaling/failure isolation.
+                  
+                  Q5                  
+                        Why API Gateway?                  
+                              → Centralize external API concerns such as routing, 
+                                    authentication, rate limiting, API versioning and observability.
+                  
+                  Q6                  
+                        Why Search Service?                        
+                              → Separate search-specific behavior and scaling from the rest of the application.
+
+                  Q7                  
+                        Why Elasticsearch/OpenSearch instead of PostgreSQL?                  
+                              → Search-specific indexing, full-text matching, relevance, filtering and distributed search workloads.
+                  
+                  Q8                  
+                        Is Search Index the source of truth?                        
+                              → Generally no. Product/transactional storage remains authoritative; search is a derived read model.
+                  
+                  Q9                  
+                        Why eventual consistency between DB and Search Index?                        
+                              → It decouples indexing from the transactional write path and is usually acceptable for product discovery.
+                  
+                  Q10                  
+                        Why shards?                  
+                              → Partition large search datasets and distribute query/storage workload.
+
+                  Q11                  
+                        Why replicas?                  
+                              → Availability and read scalability, at the cost of additional storage/write complexity.
+================================================================================================================================================
+      The mental model I want you to retain
+      
+      Don't memorize the diagram.
+      
+      Remember this chain:
+                              Requirement
+                                  ↓
+                              Traffic pattern
+                                  ↓
+                              Bottleneck
+                                  ↓
+                              Problem
+                                  ↓
+                              Architectural component
+                                  ↓
+                              Trade-off
+
+For example:
+                  Millions of product-image reads
+                            ↓
+                  Object storage shouldn't serve every request
+                            ↓
+                  Origin load + latency
+                            ↓
+                           CDN
+                            ↓
+                  Faster delivery + origin protection
+
+And:
+                  100M searchable products
+                            ↓
+                  Complex search queries
+                            ↓
+                  Relational DB isn't optimized for this access pattern
+                            ↓
+                  Search index
+                            ↓
+                  Distributed search + ranking + filtering
+
+That reasoning chain is much more valuable for your
+DeepMind L6 preparation than memorizing an Amazon architecture diagram.
+================================================================================================================================================
+Next: Step 4 — Product Catalog + Database Design
+
+Next we'll take the Product Catalog and go much deeper:
+
+
+================================================================================================================================================
 
 
 
@@ -1785,10 +2544,66 @@ This is a much more precise mental model.
 
 
 
+================================================================================================================================================
+
 
 ================================================================================================================================================
 
 
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+
+================================================================================================================================================
 
 
 ================================================================================================================================================
