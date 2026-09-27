@@ -2535,7 +2535,30 @@ Next: Step 4 — Product Catalog + Database Design
 
 Next we'll take the Product Catalog and go much deeper:
 
+                        Product Service
+                              ↓
+                        PostgreSQL
+                              ↓
+                        Read Replicas
+                              ↓
+                        Redis Cache
+                              ↓
+                        Search Index
 
+We'll answer the difficult questions:
+
+                  Why PostgreSQL?
+                  Why not MongoDB/Cassandra?
+                  Why not directly use Elasticsearch?
+                  What exactly is stored in Redis?
+                  Cache-aside vs write-through?
+                  What happens during cache miss?
+                  Cache invalidation?
+                  What happens when Redis goes down?
+                  Why read replicas?
+                  When do we need sharding?
+                  How do we prevent stale product prices?
+                  How does a product update propagate to Search?
 ================================================================================================================================================
 
 
