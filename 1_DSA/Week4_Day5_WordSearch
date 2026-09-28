@@ -595,15 +595,224 @@ The reusable abstraction is:
       That is the level of explanation we're aiming for.
 
 ==========================================================================================================================================
+More optimized SOlution :
 
+class Solution {
+
+    private static final int[][] DIRECTIONS = {
+        {0, 1},
+        {0, -1},
+        {1, 0},
+        {-1, 0}
+    };
+
+    public boolean exist(char[][] board, String word) {
+
+        if (board == null || board.length == 0 ||
+            board[0].length == 0 || word == null || word.isEmpty()) {
+            return false;
+        }
+
+        int rows = board.length;
+        int cols = board[0].length;
+
+        if (word.length() > rows * cols) {
+            return false;
+        }
+
+        // Optimization 1:
+        // Check whether the board contains enough occurrences
+        // of every character required by the word.
+        int[] boardFreq = new int[128];
+
+        for (char[] row : board) {
+            for (char ch : row) {
+                boardFreq[ch]++;
+            }
+        }
+
+        int[] wordFreq = new int[128];
+
+        for (char ch : word.toCharArray()) {
+            wordFreq[ch]++;
+
+            if (wordFreq[ch] > boardFreq[ch]) {
+                return false;
+            }
+        }
+
+        // Optimization 2:
+        // Start from the rarer endpoint.
+        if (boardFreq[word.charAt(0)] > boardFreq[word.charAt(word.length() - 1)]) {
+            word = new StringBuilder(word).reverse().toString();
+        }
+
+        // Optimization 3:
+        // Mutate board temporarily instead of maintaining
+        // a separate visited[][] array.
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+
+                if (board[row][col] == word.charAt(0)
+                        && backtrack(board, word, row, col, 0)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private boolean backtrack(
+            char[][] board,
+            String word,
+            int row,
+            int col,
+            int index) {
+
+        // All characters matched.
+        if (index == word.length()) {
+            return true;
+        }
+
+        // Invalid position or character mismatch.
+        if (row < 0 || row >= board.length ||
+            col < 0 || col >= board[0].length ||
+            board[row][col] != word.charAt(index)) {
+            return false;
+        }
+
+        char original = board[row][col];
+
+        // Mark current cell as visited.
+        board[row][col] = '#';
+
+        for (int[] direction : DIRECTIONS) {
+
+            int nextRow = row + direction[0];
+            int nextCol = col + direction[1];
+
+            if (backtrack(board, word, nextRow, nextCol, index + 1)) {
+                board[row][col] = original;
+                return true;
+            }
+        }
+
+        // Backtrack.
+        board[row][col] = original;
+
+        return false;
+    }
+}
 
 ==========================================================================================================================================
 
+Yes. Your current solution is already asymptotically optimal in the general case in the sense that Word Search is inherently exponential due to backtracking, but we can make it significantly faster in practice with pruning.
 
+For a Google DeepMind L6 interview, I would actually present your solution first, then improve it with three concrete optimizations:
+
+Choose the rarer endpoint of the word as the starting character — very effective.
+Frequency pruning — immediately reject if the board doesn't contain enough occurrences of required characters.
+Avoid unnecessary work in the recursive function and use a compact visited representation.
+1. Your current approach
+
+Your algorithm is:
+
+For every cell:
+    if cell == word[0]:
+        DFS/backtracking
+            mark cell visited
+            explore 4 directions
+            unmark cell
+
+Complexity is approximately:
+
+Time: O(R × C × 4^L)
+Space: O(L) recursion stack
+
+where:
+
+R = rows
+C = columns
+L = word length
+
+More precisely, after the first move you have at most 3 meaningful choices because you normally cannot immediately revisit the previous cell:
+
+O(R × C × 4 × 3^(L-1))
+
+The important point is that there is no polynomial-time solution for the general Word Search problem unless additional constraints are introduced.
+
+2. The biggest practical optimization: start from the rarer character
+
+Suppose:
+
+board:
+
+A A A A A
+A A A A A
+A A A A A
+A A A A B
+A A A A A
+
+word = "AAAAAB"
+
+If we start searching from A, there are dozens of starting points.
+
+But if we reverse the word:
+
+"BAAAAA"
+
+we start with B, which occurs only once.
+
+That dramatically reduces the number of DFS searches.
+
+Key observation
+
+Word Search is symmetric.
+
+If:
+
+A → A → B
+
+exists as a path, then traversing that same path backwards:
+
+B → A → A
+
+also exists.
+
+So we can choose whichever endpoint occurs less frequently on the board.
 
 ==========================================================================================================================================
 
+7. Can we improve the Big-O?
 
+This is where I would be careful in an interview.
+
+We should not claim:
+
+"The optimized solution is O(R × C × L)."
+
+It isn't.
+
+The worst-case remains exponential:
+
+O(R × C × 3^L)
+
+approximately, after the first move.
+
+The optimizations improve the practical search space, not the theoretical worst-case complexity.
+
+Space remains:
+
+O(L)
+
+for recursion.
+
+The board mutation:
+
+board[row][col] = '#';
+
+doesn't introduce an additional O(R × C) data structure.
 
 
 ==========================================================================================================================================
