@@ -347,12 +347,117 @@ Exactly. ✅ Those are the correct indices.
         For n = 4:   row - col ∈ [-3, 3]
                   and the offset maps that into: [0, 6]
 ================================================================================================================================================
+The invariant: 
 
-
-
+              This is the key L6-level idea:
+              
+                              Before entering solve(row), 
+                              the three tracking structures exactly represent all column 
+                              and diagonal constraints created by queens in rows 0..row-1.
+              
+              When we place a queen:              
+                                  choose:
+                                          → mark 3 constraints
+                                          → recurse
+                                          → unmark 3 constraints
+              
+              So the state is restored exactly after every branch.
 
 ================================================================================================================================================
+Now let's derive the complete solution:
 
+class Solution {
+
+    public List<List<String>> solveNQueens(int n) {
+
+        List<List<String>> result = new ArrayList<>();
+
+        char[][] board = new char[n][n];
+
+        for (char[] row : board) {
+            Arrays.fill(row, '.');
+        }
+
+        boolean[] usedColumns = new boolean[n];
+        boolean[] usedDiag1 = new boolean[2 * n - 1];
+        boolean[] usedDiag2 = new boolean[2 * n - 1];
+
+        backtrack(
+                0,
+                n,
+                board,
+                usedColumns,
+                usedDiag1,
+                usedDiag2,
+                result
+        );
+
+        return result;
+    }
+
+    private void backtrack(
+            int row,
+            int n,
+            char[][] board,
+            boolean[] usedColumns,
+            boolean[] usedDiag1,
+            boolean[] usedDiag2,
+            List<List<String>> result) {
+
+        // All rows successfully assigned.
+        if (row == n) {
+            result.add(buildBoard(board));
+            return;
+        }
+
+        for (int col = 0; col < n; col++) {
+
+            int diag1 = row - col + n - 1;
+            int diag2 = row + col;
+
+            // Position is under attack.
+            if (usedColumns[col]
+                    || usedDiag1[diag1]
+                    || usedDiag2[diag2]) {
+                continue;
+            }
+
+            // Choose
+            board[row][col] = 'Q';
+            usedColumns[col] = true;
+            usedDiag1[diag1] = true;
+            usedDiag2[diag2] = true;
+
+            // Explore
+            backtrack(
+                    row + 1,
+                    n,
+                    board,
+                    usedColumns,
+                    usedDiag1,
+                    usedDiag2,
+                    result
+            );
+
+            // Undo
+            board[row][col] = '.';
+            usedColumns[col] = false;
+            usedDiag1[diag1] = false;
+            usedDiag2[diag2] = false;
+        }
+    }
+
+    private List<String> buildBoard(char[][] board) {
+
+        List<String> solution = new ArrayList<>(board.length);
+
+        for (char[] row : board) {
+            solution.add(new String(row));
+        }
+
+        return solution;
+    }
+}
 
 
 ================================================================================================================================================
