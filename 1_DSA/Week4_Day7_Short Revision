@@ -1,0 +1,65 @@
+| Pattern                 | Core trigger                           | Key invariant / question          | Must-know interview question                  | L6-level angle                                     |
+| ----------------------- | -------------------------------------- | --------------------------------- | --------------------------------------------- | -------------------------------------------------- |
+| HashMap / HashSet       | Fast lookup, frequency, duplicates     | What information must I remember? | Why Map vs Set?                               | Collision, memory, worst-case, Java implementation |
+| Two Pointers            | Sorted/structured array, pair relation | Which pointer can I safely move?  | Why does moving this pointer eliminate cases? | Prove why search space shrinks                     |
+| Sliding Window          | Contiguous substring/subarray          | When is window valid/invalid?     | When do I expand/shrink?                      | Maintain state incrementally                       |
+| Prefix Sum              | Range sum / subarray sum               | `current - previous = target`?    | Why `map.put(0,1)`?                           | Count vs longest: frequency vs earliest index      |
+| Binary Search           | Ordered/monotonic search space         | Can I eliminate half safely?      | Why is monotonicity required?                 | Boundary definition, correctness                   |
+| Binary Search on Answer | Optimize min/max answer                | Is feasibility monotonic?         | What are low/high and predicate?              | Define search space + feasibility function         |
+| Monotonic Stack         | Next greater/smaller, histogram        | Who is still unresolved?          | Why is each element pushed/popped once?       | Amortized O(n), invariant                          |
+| Recursion               | Same problem on smaller state          | What is state/base/progress?      | What is recursion depth?                      | Recurrence derivation                              |
+| Backtracking            | Enumerate possible solutions           | What are choices + how do I undo? | Why is undo mandatory?                        | State restoration invariant                        |
+| Subsets I               | Include/exclude                        | `include OR exclude`              | Why `O(n·2ⁿ)`?                                | Output-sensitive complexity                        |
+| Subsets II              | Duplicates                             | Skip **same-level** duplicates    | Why `i > start`?                              | Sibling vs path duplicate                          |
+| Combination Sum         | Reusable candidates                    | Can current choice be reused?     | Why recurse with `i`?                         | State = start + target + path                      |
+| Combination Sum II      | No reuse + duplicates                  | `i+1` + duplicate sibling pruning | Why sort first?                               | Combine multiple constraints correctly             |
+| Generate Parentheses    | Constraint-based generation            | `close ≤ open`                    | When is `)` legal?                            | Invariant-driven pruning, Catalan complexity       |
+| Letter Combinations     | Choice per input digit                 | Which digit am I processing?      | Why `index+1`?                                | Minimal recursive state                            |
+| Palindrome Partitioning | Choose substring boundaries            | Is `s[start..end]` valid?         | Why `end+1`?                                  | Backtracking + DP preprocessing                    |
+| Word Search             | Grid DFS                               | Is cell valid + unused?           | Why is visited path-local?                    | Correct state definition, mutation trade-off       |
+| N-Queens                | Constraint placement                   | Column + 2 diagonals free?        | Why `row-col` and `row+col`?                  | O(1) constraint checks, bitmask optimization       |
+
+
+################################################################################################################################################
+
+| Topic                            | Priority  | Problems to master                                                                                                                                                           | What you must be able to derive                                                  |
+| -------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **Hashing**                      | 🔴 Must   | **LC 1 Two Sum**, **217 Contains Duplicate**, **242 Valid Anagram**, **49 Group Anagrams**, **128 Longest Consecutive Sequence**                                             | Map vs Set, frequency counting, complement lookup, grouping, O(1) average lookup |
+| **Hashing + Prefix**             | 🔴 Must   | **LC 560 Subarray Sum Equals K**, **525 Contiguous Array**                                                                                                                   | `currentSum - previousSum`, why `map.put(0,1)`, frequency vs earliest index      |
+| **Sliding Window**               | 🔴 Must   | **LC 3 Longest Substring Without Repeating Characters**, **209 Minimum Size Subarray Sum**, **424 Longest Repeating Character Replacement**, **76 Minimum Window Substring** | Fixed vs variable window, when to expand/shrink, maintaining window state        |
+| **Sliding Window – Advanced**    | 🟠 Strong | **LC 567 Permutation in String**, **438 Find All Anagrams**, **239 Sliding Window Maximum**                                                                                  | Frequency state, exact-window logic, monotonic deque                             |
+| **Prefix Sum**                   | 🔴 Must   | **LC 560 Subarray Sum Equals K**, **525 Contiguous Array**, **974 Subarray Sums Divisible by K**                                                                             | Count vs longest, prefix frequency, modulo prefix                                |
+| **Binary Search**                | 🔴 Must   | **LC 704 Binary Search**, **35 Search Insert Position**, **34 First/Last Position**, **153 Find Minimum in Rotated Sorted Array**, **33 Search in Rotated Sorted Array**     | Boundary conditions, invariant, which half can be eliminated                     |
+| **Binary Search on Answer**      | 🔴 Must   | **LC 875 Koko Eating Bananas**, **1011 Capacity to Ship Packages**, **410 Split Array Largest Sum**                                                                          | Search space, feasibility function, monotonicity, first valid answer             |
+| **Binary Search – Advanced**     | 🟠 Strong | **LC 4 Median of Two Sorted Arrays**                                                                                                                                         | Partition reasoning, invariants, eliminating search space without scanning       |
+| **Monotonic Stack**              | 🔴 Must   | **LC 496 Next Greater Element I**, **739 Daily Temperatures**, **84 Largest Rectangle in Histogram**                                                                         | What remains unresolved, stack invariant, why amortized O(n)                     |
+| **Monotonic Stack – Advanced**   | 🔴 Must   | **LC 42 Trapping Rain Water**                                                                                                                                                | Boundary reasoning, stack vs two-pointer trade-off                               |
+| **Monotonic Stack – Variations** | 🟠 Strong | **LC 503 Next Greater Element II**, **901 Online Stock Span**, **907 Sum of Subarray Minimums**                                                                              | Circular arrays, span, contribution technique                                    |
+
+
+
+################################################################################################################################################
+
+
+
+################################################################################################################################################
+
+
+
+
+
+################################################################################################################################################
+
+
+
+
+
+################################################################################################################################################
+
+
+
+
+
+################################################################################################################################################
+
+################
