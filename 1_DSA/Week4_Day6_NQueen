@@ -58,8 +58,6 @@ Why N-Queens is important for your L6 preparation:
                                           ↓
                                       Efficient mutable state
 
-
-
 ================================================================================================================================================
 But there is an important upgrade.
 
@@ -78,37 +76,276 @@ But there is an important upgrade.
 
 ================================================================================================================================================
 
+Step 1 — Don't code yet
+
+                The strongest way to model N-Queens is row by row.                
+                Why?
+                
+                Because every valid solution has exactly one queen in every row.                
+                So our recursion can represent:
+                              row = current row where we need to place a queen
+
+                At each row:
+                            choose a column
+                                ↓
+                            check whether that position is safe
+                                ↓
+                            place queen
+                                ↓
+                            recurse to next row
+                                ↓
+                            remove queen
+
+
+So the backtracking skeleton becomes:
+                                          solve(row)
+                                          
+                                          for each column:
+                                              if position is safe:
+                                                  choose
+                                                  solve(row + 1)
+                                                  undo
+================================================================================================================================================
+Step 2 — Think about the state
+
+                      Unlike Word Search, we don't need:     row + col + wordIndex
+                      
+                      Instead, the fundamental recursive state is:      row
+                      
+                      The board configuration is the mutable state being built.
+
+              Now the important question is:              
+                          What information must we maintain so that checking whether (row, col) is safe is efficient?
+              
+              A queen is unsafe if another queen already occupies:
+                                                                  same column
+                                                                  same \ diagonal
+                                                                  same / diagonal
+
+              We therefore need to track three sets of constraints.              
+              A standard representation is:
+                                            columns
+                                            diagonal1
+                                            diagonal2
+================================================================================================================================================
+Step 3 — Diagonal insight:
+
+                      For a cell:   (row, col)
+                      
+                      the two diagonals can be identified using:                      
+                                                                row - col
+                                                                row + col                      
+                      Specifically:                      
+                                      \ diagonal → row - col
+                                      / diagonal → row + col
+                      
+                      This is a very important pattern.
+                          For example:   (row, col) = (2, 1)                          
+                          gives:                          
+                                  row - col = 1
+                                  row + col = 3
+                          
+                          Any other cell with the same row - col lies on the same \ diagonal.                          
+                          Any other cell with the same row + col lies on the same / diagonal.
+                          
+                          So safety becomes approximately:                          
+                                                        columnUsed?
+                                                        OR
+                                                        (row - col) diagonalUsed?
+                                                        OR
+                                                        (row + col) diagonalUsed?
+                          
+                          which can be checked in O(1) with sets/boolean arrays.
+
+================================================================================================================================================
+Step 4 — The crucial invariant:
+
+                At recursion level:   row = r                
+                we maintain:                
+                              Rows 0 ... r-1 already contain exactly one queen each, 
+                                and none of those queens attack each other. 
+                              We are trying to choose a safe column for row r.
+                
+                This is the kind of invariant I want you to articulate in a senior interview.
 
 
 ================================================================================================================================================
+Step 5 — Before code, your first L6 exercise
 
+Suppose: n = 4
+and we have already placed:
+                          row 0 → column 1
+                          row 1 → column 3
 
+So the board conceptually is:
+
+                                  . Q . .
+                                  . . . Q
+                                  . . . .
+                                  . . . .
+
+Now we're trying to place a queen in:  row = 2
+Consider these candidate positions:
+                                      (2,0)
+                                      (2,1)
+                                      (2,2)
+                                      (2,3)
+
+I want you to determine which are safe and which are unsafe.
+Use these three rules:
+                        same column
+                        row - col
+                        row + col
+
+Don't code yet.
+Explain how you would determine whether (2,0), (2,1), (2,2), and (2,3) are valid.
+
+You have the right framework, but there is one important 
+calculation error for (2,2). 
+This is exactly the kind of detail we need to become rigorous at L6 level.
+
+We currently have queens at:
+                              (0,1)
+                              (1,3)
+
+We're evaluating row 2.
+                        Candidate (2,0):
+                                        Column: 0
+                                                not used ✅                        
+                                        \ diagonal: row - col = 2 - 0 = 2
+                                              Existing:
+                                                        (0,1) → -1
+                                                        (1,3) → -2
+                                              So 2 is unused ✅
+                                        
+                                        / diagonal:  row + col = 2 + 0 = 2                        
+                                              Existing:                        
+                                                      (0,1) → 1
+                                                      (1,3) → 4
+                                             So 2 is unused ✅
+                
+                                        Therefore:                                        
+                                                  (2,0) → SAFE
+
+                          Candidate (2,1):                          
+                                Column 1 is already occupied:  (0,1)                                
+                                Therefore:  (2,1) → INVALID
+
+                          Candidate (2,2):
+                                Column 2 is free ✅
+                                        \ diagonal: 2 - 2 = 0
+                                        Existing values: -1, -2
+                                        So this diagonal is free ✅
+
+                                But / diagonal: 2 + 2 = 4                                
+                                        And queen (1,3) has: 1 + 3 = 4
+                                        So they lie on the same / diagonal.
+                                        Therefore:                                        
+                                        (2,2) → INVALID
+
+                        Candidate (2,3):
+                                  Column 3 is already occupied by: (1,3)                                  
+                                  so: (2,3) → INVALID
+
+                        Therefore, from these four candidates:
+
+                              (2,0) → ✅ safe
+                              (2,1) → ❌ column conflict
+                              (2,2) → ❌ diagonal conflict
+                              (2,3) → ❌ column conflict
+
+                          So there is only one valid choice: (2,0).
 
 ================================================================================================================================================
-
-
-
-================================================================================================================================================
-
-
-
-================================================================================================================================================
-
-
-================================================================================================================================================
-
-
-================================================================================================================================================
-
-
+Why this matters:
+                You just encountered the exact reason we use both diagonal identities:                
+                          row - col
+                          row + col
+                
+                Checking only the column is not sufficient.
+                
+                For (2,2):                
+                      column = 2          → free
+                      row - col = 0       → free
+                      row + col = 4       → already occupied
+                
+                So the position is invalid even though its column is available.
 
 ================================================================================================================================================
+Now let's turn this into an L6-quality design
 
+            We can maintain:            
+                              boolean[] usedColumns;
+                              boolean[] usedDiag1;
+                              boolean[] usedDiag2;
+            
+            For n x n:            
+                        columns → n
+                        row-col → range -(n-1) ... (n-1)
+                        row+col → range 0 ... 2(n-1)
+            
+            Because row - col can be negative, we can either:
+
+                      Option A — use a Set
+                                  Set<Integer> columns;
+                                  Set<Integer> diag1;
+                                  Set<Integer> diag2;                      
+                      Very readable.
+
+                      Option B — use boolean arrays:                      
+                                Faster and allocation-free during recursion.
+                                
+                                For row - col, use an offset:                                
+                                              int diag1Index = row - col + (n - 1);
+                                
+                                This maps:  -(n-1) ... (n-1)                                
+                                into:   0 ... 2(n-1)
+                      
+                      This is the implementation I'd want you to understand for a strong Java interview.
+================================================================================================================================================
+The safety check becomes O(1):
+
+        if (usedColumns[col]
+                || usedDiag1[row - col + n - 1]
+                || usedDiag2[row + col]) {
+            continue;
+        }
+        
+  Then:        
+        mark
+        → recurse
+        → unmark
+        
+  Exactly the backtracking invariant you've already learned.
 
 ================================================================================================================================================
+Your next L6 exercise:
+              Before I give you the complete Java 21 solution, derive the marking and undo operations yourself.
+              
+              Suppose we decide (row, col) is safe.              
+              What three structures should we mark, and what exact values should we store?              
+              Think in terms of:              
+                                usedColumns[?]
+                                usedDiag1[?]
+                                usedDiag2[?]                                
+              Then tell me what we must undo after the recursive call returns.
 
+Exactly. ✅ Those are the correct indices.
 
-
+        For a safe position (row, col):        
+                      usedColumns[col] = true;
+                      usedDiag1[row - col + n - 1] = true;
+                      usedDiag2[row + col] = true;
+        
+        And after the recursive call returns, we must restore all three:        
+                      usedColumns[col] = false;
+                      usedDiag1[row - col + n - 1] = false;
+                      usedDiag2[row + col] = false;
+        
+        The offset: row - col + n - 1
+        is necessary because row - col can be negative.        
+        For n = 4:   row - col ∈ [-3, 3]
+                  and the offset maps that into: [0, 6]
 ================================================================================================================================================
 
 
