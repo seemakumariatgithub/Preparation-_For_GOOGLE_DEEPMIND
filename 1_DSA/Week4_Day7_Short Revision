@@ -39,27 +39,151 @@
 
 
 ################################################################################################################################################
+The problems I would make your core set
 
+If you want the smallest set that gives you maximum pattern coverage, practice these 16 very deeply:
+
+Hashing
+1    Two Sum
+49   Group Anagrams
+128  Longest Consecutive Sequence
+
+Window / Prefix
+3    Longest Substring Without Repeating Characters
+76   Minimum Window Substring
+424  Longest Repeating Character Replacement
+560  Subarray Sum Equals K
+525  Contiguous Array
+
+Binary Search
+33   Search in Rotated Sorted Array
+34   Find First and Last Position
+153  Find Minimum in Rotated Sorted Array
+875  Koko Eating Bananas
+1011 Capacity to Ship Packages
+
+Monotonic Stack
+496  Next Greater Element I
+739  Daily Temperatures
+84   Largest Rectangle in Histogram
+42   Trapping Rain Water
+
+
+################################################################################################################################################
+What an L6 interviewer can ask beyond "solve it"
+
+This is where I want you to practice differently.
+
+| Pattern                 | Likely deeper follow-up                                                    |
+| ----------------------- | -------------------------------------------------------------------------- |
+| HashMap                 | **Why is HashMap O(1) average and what happens under collisions?**         |
+| HashMap                 | **Why HashMap instead of TreeMap / HashSet?**                              |
+| Prefix Sum              | **Why frequency map for counting but earliest-index map for longest?**     |
+| Sliding Window          | **Why is it safe to move `left` without reconsidering earlier positions?** |
+| Minimum Window          | **What exactly makes the window valid?**                                   |
+| Binary Search           | **State your loop invariant before writing code.**                         |
+| Binary Search on Answer | **Prove that your feasibility predicate is monotonic.**                    |
+| Rotated Array           | **Why can one half always be classified?**                                 |
+| Monotonic Stack         | **What exactly does an element in the stack represent?**                   |
+| Monotonic Stack         | **Why is total complexity O(n), despite nested-looking loops?**            |
+| Histogram               | **When a bar is popped, why is its maximal width now known?**              |
+| Trapping Rain Water     | **Compare stack, two-pointer, and prefix-max solutions.**                  |
 
 
 ################################################################################################################################################
 
+The patterns you should be able to recognize instantly
+"Have I seen this before?"
+        → HashMap / HashSet
 
+"Contiguous substring/subarray?"
+        → Sliding Window / Prefix Sum
 
+"Need count of subarrays with target?"
+        → Prefix Sum + HashMap
+
+"Need longest subarray with target?"
+        → Prefix Sum + earliest index
+
+"Sorted / monotonic search space?"
+        → Binary Search
+
+"Minimize/maximize an answer, and I can test feasibility?"
+        → Binary Search on Answer
+
+"Next greater/smaller?"
+        → Monotonic Stack
+
+"Largest rectangle / nearest boundary?"
+        → Monotonic Stack
+
+"Generate all possibilities?"
+        → Backtracking
 
 
 ################################################################################################################################################
+The must-master invariants
 
+These are more important than remembering individual code:
 
-
-
-
-################################################################################################################################################
-
-
-
-
+                  Hashing
+                  → What does each map entry represent?
+                  
+                  Sliding Window
+                  → What makes the current window valid?
+                  
+                  Prefix Sum
+                  → currentPrefix - previousPrefix = required sum
+                  
+                  Binary Search
+                  → What range is guaranteed to contain the answer?
+                  
+                  Binary Search on Answer
+                  → Is feasibility monotonic?
+                  
+                  Monotonic Stack
+                  → What unresolved elements does the stack contain?
+                  
 
 ################################################################################################################################################
 
 ################
+
+
+
+################################################################################################################################################
+
+
+
+################################################################################################################################################
+
+
+
+################################################################################################################################################
+
+
+
+################################################################################################################################################
+
+
+
+
+################################################################################################################################################
+
+
+
+################################################################################################################################################
+
+
+
+
+################################################################################################################################################
+
+
+
+
+################################################################################################################################################
+
+
+
+################################################################################################################################################
