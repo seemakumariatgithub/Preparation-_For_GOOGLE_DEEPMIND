@@ -707,112 +707,109 @@ class Solution {
 
 ==========================================================================================================================================
 
-Yes. Your current solution is already asymptotically optimal in the general case in the sense that Word Search is inherently exponential due to backtracking, but we can make it significantly faster in practice with pruning.
+Yes. Your current solution is already asymptotically optimal in the general case 
+in the sense that Word Search is inherently exponential due to backtracking, 
+but we can make it significantly faster in practice with pruning.
 
-For a Google DeepMind L6 interview, I would actually present your solution first, then improve it with three concrete optimizations:
+For a Google DeepMind L6 interview, 
+I would actually present your solution first, 
+then improve it with three concrete optimizations:
 
-Choose the rarer endpoint of the word as the starting character — very effective.
-Frequency pruning — immediately reject if the board doesn't contain enough occurrences of required characters.
-Avoid unnecessary work in the recursive function and use a compact visited representation.
-1. Your current approach
+         1 -  Choose the rarer endpoint of the word as the starting character — very effective.          
+         2 - Frequency pruning — immediately reject if the board doesn't contain enough occurrences of required characters.
+         3 - Avoid unnecessary work in the recursive function and use a compact visited representation.
 
-Your algorithm is:
+        1. Your current approach
+        
+        Your algorithm is:
+        
+        For every cell:
+            if cell == word[0]:
+                DFS/backtracking
+                    mark cell visited
+                    explore 4 directions
+                    unmark cell
 
-For every cell:
-    if cell == word[0]:
-        DFS/backtracking
-            mark cell visited
-            explore 4 directions
-            unmark cell
+        Complexity is approximately:
+        
+                        Time: O(R × C × 4^L)
+                        Space: O(L) recursion stack
+                        
+                        where:
+                        
+                        R = rows
+                        C = columns
+                        L = word length
 
-Complexity is approximately:
+                      More precisely, after the first move you have at most 
+                        3 meaningful choices because you normally cannot immediately revisit the previous cell:
+                      
+                      O(R × C × 4 × 3^(L-1))
 
-Time: O(R × C × 4^L)
-Space: O(L) recursion stack
-
-where:
-
-R = rows
-C = columns
-L = word length
-
-More precisely, after the first move you have at most 3 meaningful choices because you normally cannot immediately revisit the previous cell:
-
-O(R × C × 4 × 3^(L-1))
-
-The important point is that there is no polynomial-time solution for the general Word Search problem unless additional constraints are introduced.
+                      The important point is that there is no polynomial-time solution for the 
+                      general Word Search problem unless additional constraints are introduced.
 
 2. The biggest practical optimization: start from the rarer character
 
-Suppose:
+                  Suppose:
+                  
+                  board:
+                  
+                  A A A A A
+                  A A A A A
+                  A A A A A
+                  A A A A B
+                  A A A A A
+                  
+                  word = "AAAAAB"
+                  
+                  If we start searching from A, there are dozens of starting points.
 
-board:
+                  But if we reverse the word:
+                  
+                  "BAAAAA"
+                  
+                  we start with B, which occurs only once.
 
-A A A A A
-A A A A A
-A A A A A
-A A A A B
-A A A A A
+                That dramatically reduces the number of DFS searches.
+                
+                Key observation
+                
+                Word Search is symmetric.
+                
+                If:
 
-word = "AAAAAB"
+                A → A → B
+                
+                exists as a path, then traversing that same path backwards:
+                
+                B → A → A
+                
+                also exists.
 
-If we start searching from A, there are dozens of starting points.
-
-But if we reverse the word:
-
-"BAAAAA"
-
-we start with B, which occurs only once.
-
-That dramatically reduces the number of DFS searches.
-
-Key observation
-
-Word Search is symmetric.
-
-If:
-
-A → A → B
-
-exists as a path, then traversing that same path backwards:
-
-B → A → A
-
-also exists.
-
-So we can choose whichever endpoint occurs less frequently on the board.
+              So we can choose whichever endpoint occurs less frequently on the board.
 
 ==========================================================================================================================================
 
 7. Can we improve the Big-O?
 
-This is where I would be careful in an interview.
+                        This is where I would be careful in an interview.
+                        
+                        We should not claim:                        
+                                      "The optimized solution is O(R × C × L)."                        
+                                      It isn't.
+                        
+                        The worst-case remains exponential:  O(R × C × 3^L)
+                      
+                      approximately, after the first move.
+                      
+                      The optimizations improve the practical search space, not the theoretical worst-case complexity.
 
-We should not claim:
-
-"The optimized solution is O(R × C × L)."
-
-It isn't.
-
-The worst-case remains exponential:
-
-O(R × C × 3^L)
-
-approximately, after the first move.
-
-The optimizations improve the practical search space, not the theoretical worst-case complexity.
-
-Space remains:
-
-O(L)
-
-for recursion.
-
-The board mutation:
-
-board[row][col] = '#';
-
-doesn't introduce an additional O(R × C) data structure.
+                      Space remains:  O(L)   for recursion.
+                      
+                      The board mutation:      board[row][col] = '#';
+                      
+                      doesn't introduce an additional O(R × C) data structure.
 
 
 ==========================================================================================================================================
