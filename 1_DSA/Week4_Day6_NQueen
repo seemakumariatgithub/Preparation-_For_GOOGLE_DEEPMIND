@@ -461,32 +461,150 @@ class Solution {
 
 
 ================================================================================================================================================
+Why this design is strong:
+            
+            The naive implementation could, for every candidate cell:            
+                        scan entire previous board
+                        → check column
+                        → check both diagonals
+            
+            That makes each safety check expensive.            
+            Our design turns the question:    "Is (row,col) safe?"
+            
+            into three constant-time lookups:            
+                                                usedColumns[col]
+                                                usedDiag1[diag1]
+                                                usedDiag2[diag2]
+            
+            So the constraint-checking itself is:   O(1) 
+            
+            That is an important optimization—not because the overall problem becomes polynomial, 
+            but because we reduce the cost inside every node of the search tree.
 
+================================================================================================================================================
+Complexity:
+              N-Queens has an exponential search space.
+              
+              A commonly used upper-bound characterization is approximately:              
+                                                                              O(N!)
+              
+              because:               
+                      row 0 has up to N choices,
+                      row 1 has at most N-1,
+                      row 2 at most N-2,
+                      and so on.
+              
+              With pruning, the actual number of explored states is much smaller 
+              for many inputs, but the problem remains exponential.
 
+================================================================================================================================================
+For each complete solution, building the board costs O(N²) if we materialize N strings of length N.
 
+          So an interview-safe discussion is:
+                                              Search: approximately O(N!)
+                                              Constraint check: O(1)
+                                              Output construction: O(N²) per solution
+                                              Auxiliary state: O(N²) for board + O(N) tracking + O(N) recursion
+
+The exact tight complexity discussion is less important than demonstrating that you 
+understand where the exponential cost comes from and that constraint checks are constant-time.
+================================================================================================================================================
+
+L6-level design observation
+
+          There are actually two different optimizations here.
+          
+          Optimization 1 — State representation:
+          
+                              Instead of repeatedly scanning the board:   O(N) or O(N²) safety checks
+                              
+                              we maintain incremental constraint state:                              
+                                                                        columns
+                                                                        diag1
+                                                                        diag2
+                              
+                              This is a form of incremental state maintenance.
+          
+          Optimization 2 — Search order:
+
+                                  We place exactly one queen per row.                                  
+                                  That immediately eliminates configurations containing:                                  
+                                                      two queens in the same row                                  
+                                  without ever generating them.
+                                  So the representation itself performs pruning.                                  
+                                  That's an important architectural principle:                                  
+                                            Choose a state representation that makes invalid states impossible or cheap to reject.
+================================================================================================================================================
+One more L6-level improvement:
+
+              For even stronger implementation, the three boolean arrays can be replaced with bitmasks.              
+              Then:              
+                      columns
+                      diag1
+                      diag2
+              
+              can each be represented as an integer/long bitset, and we can determine all available positions using bit operations.
+              
+              That reduces the per-row search to something like:              
+                            available = fullMask & ~(columns | diag1 | diag2)              
+              and lets us extract available columns efficiently.
+              
+              For a Java interview, I would first present the boolean-array solution because it 
+                is clearer and easier to prove correct, then discuss bitmasks as an 
+                  optimization when the interviewer asks how to improve it.
+              
+              That is the kind of progression I want you to practice:              
+                          Correct → clear → efficient → optimized when justified.
 ================================================================================================================================================
 
 
+Your next challenge
+      Before we move to the bitmask version, explain this invariant in your own words:      
+                  At the beginning of backtrack(row), what exactly do usedColumns, usedDiag1, and usedDiag2 represent?
+      
+      This is the most important correctness idea in the N-Queens solution.
+        
+        
+        Yes. ✅ Your understanding is correct. The only thing I'd tighten is the terminology around the diagonals.
+        
+        For a queen at (row, col):  usedColumns[col]        
+        means: A queen already occupies this column.
+        
+        For the two diagonal families:  usedDiag1[row - col + n - 1]        
+        represents one diagonal direction:   \        
+        because all cells on the same \ diagonal have the same: row-col 
+        
+        And:   usedDiag2[row + col]
+        represents the other direction:   /        
+        because all cells on the same / diagonal have the same:  row+col 
+        
+        So the clean L6 explanation is:
+        
+                    "At the beginning of backtrack(row), these three structures represent 
+                    all constraints introduced by queens already placed in rows 0 through row-1: occupied columns, 
+                    occupied \ diagonals identified by row-col, and occupied / diagonals identified by row+col."
+        
+        That last phrase—"introduced by queens in previous rows"—is particularly important because it makes the recursive invariant precise.
+
 ================================================================================================================================================
+Why this representation is powerful: 
 
-
-
-================================================================================================================================================
-
-
-
-================================================================================================================================================
-
-
-
-================================================================================================================================================
-
-
-
-================================================================================================================================================
-
-
-
+                Suppose we're considering:  (row, col)
+                
+                The safety question becomes:               
+                                                usedColumns[col]
+                                                || usedDiag1[row - col + n - 1]
+                                                || usedDiag2[row + col]
+                
+                So instead of inspecting the board, we're asking:                
+                      Has some earlier decision already made this constraint unavailable?                
+                That's a general algorithmic pattern worth carrying into system design and backend engineering:
+                              Expensive repeated validation
+                                      ↓
+                              Maintain incremental state
+                                      ↓
+                              Constant-time validation
+You're effectively maintaining an index of constraints rather than rescanning the underlying state.
 ================================================================================================================================================
 
 
