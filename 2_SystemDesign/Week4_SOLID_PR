@@ -1,21 +1,34 @@
-When I talk about SOLID principles, I don't look at them as five independent rules that we apply mechanically while writing classes.
+One particularly strong opening:
+For a stage presentation, I would actually open with this before defining SOLID:
 
+          “The first version of a software system is usually not what makes it complex. 
+            Complexity emerges from the accumulation of change. SOLID gives us a vocabulary 
+            and a set of design principles for controlling how that change propagates through the system.”
+
+That sounds considerably more like a senior architect's perspective than starting with “SOLID stands for…”.
+
+And one strong closing line:
+
+        “Good design is not the absence of change; it is the ability of a system to absorb change 
+        without making every part of the system participate in it.”
+
+***************************************
+When I talk about SOLID principles, I don't look at them as five independent rules that we apply mechanically while writing classes.
 I see SOLID as a set of design principles that help us manage one of the fundamental challenges in software engineering:
 
-**Change.**
+      **Change.**
 
-Because software systems are rarely difficult because of the first version we build. They become difficult when the business evolves, requirements change, new integrations are introduced, traffic increases, teams grow, and previously independent components start becoming tightly coupled.
+Because software systems are rarely difficult because of the first version we build. 
+They become difficult when the business evolves, requirements change, new integrations are introduced, 
+traffic increases, teams grow, and previously independent components start becoming tightly coupled.
 
 So, from my perspective, the real question behind SOLID is not:
+            **"How do I write a SOLID class?"**
 
-**"How do I write a SOLID class?"**
-
-The more important question is:
-
-**"How do I design my system so that a change in one area does not unnecessarily propagate through unrelated areas?"**
+  The more important question is:
+            **"How do I design my system so that a change in one area does not unnecessarily propagate through unrelated areas?"**
 
 That perspective gives us a much deeper understanding of SOLID.
-
 Let's start with the **Single Responsibility Principle**.
 
 SRP is commonly described as:
