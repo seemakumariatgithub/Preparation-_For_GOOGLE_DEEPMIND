@@ -1,0 +1,101 @@
+When I think about SOLID principles, I don't think of them as five rules that we simply apply to every class or every interface.
+
+For me, SOLID is primarily about one thing: **managing change in a software system**.
+
+As developers, we constantly deal with change — business requirements change, databases change, external integrations change, and new features are introduced. Good architecture allows those changes to happen with minimal impact on unrelated parts of the system.
+
+That's where SOLID becomes useful.
+
+The first principle is **Single Responsibility Principle**, or SRP.
+
+SRP says that a class should have one reason to change.
+
+The important word here is "reason," not "function."
+
+For example, if my OrderService contains order business logic, database persistence, email notification and invoice generation, then that class has several independent reasons to change.
+
+As a developer, I would separate those responsibilities because it improves readability, testing and maintainability.
+
+But as an architect, I would go one step further and ask: **which responsibilities are likely to change independently?**
+
+That's the real value of SRP. It helps us identify meaningful boundaries and maintain high cohesion without unnecessarily creating hundreds of small classes.
+
+The second principle is **Open/Closed Principle**.
+
+It says that software should be open for extension but closed for modification.
+
+For example, imagine a payment system containing a large if-else block for credit card, UPI, PayPal and other payment methods.
+
+Every time we introduce a new payment method, we modify the same class.
+
+Instead, we can define a PaymentProcessor abstraction and provide different implementations for different payment methods.
+
+Now new payment behavior can often be introduced by adding a new implementation rather than repeatedly modifying stable business logic.
+
+But OCP doesn't mean that existing code can never be modified.
+
+From an architect's perspective, the important question is: **what is genuinely expected to vary?**
+
+We should introduce abstractions around real dimensions of change, not create interfaces everywhere just to satisfy SOLID.
+
+The third principle is **Liskov Substitution Principle**.
+
+This is about behavioral correctness.
+
+If a class is a subtype of an abstraction, clients should be able to use that subtype without breaking the assumptions of the abstraction.
+
+A classic example is an abstraction that says every bird can fly, and then introducing Penguin as a subtype that cannot fly.
+
+The problem isn't really Penguin. The problem is that our abstraction represents the wrong contract.
+
+So LSP teaches us that abstractions must represent valid behavioral contracts, not just common method names.
+
+The fourth principle is **Interface Segregation Principle**.
+
+It says that clients should not be forced to depend on methods they don't need.
+
+In a large system, a giant interface can create unnecessary coupling between unrelated consumers.
+
+Instead, we can create smaller, capability-oriented contracts.
+
+This improves testability and allows different parts of the system to evolve more independently.
+
+However, again, the goal isn't to create an interface for every method.
+
+The goal is to create boundaries around different client needs and different reasons to change.
+
+And finally, we have **Dependency Inversion Principle**, which I consider especially important from an architectural perspective.
+
+High-level business logic should not be tightly coupled to low-level infrastructure details.
+
+For example, an OrderService should not directly create a MySQL repository.
+
+Instead, the business logic can depend on an OrderRepository abstraction, while infrastructure provides the implementation.
+
+This allows us to change MySQL to another persistence mechanism, or replace an external implementation, without fundamentally changing the business policy.
+
+And an important distinction here is that Dependency Injection and Dependency Inversion are not the same thing.
+
+Dependency Injection is a technique.
+
+Dependency Inversion is a design principle about the direction of dependencies.
+
+So, when I look at SOLID as a whole, I don't see five independent rules.
+
+I see five complementary ways of controlling software design.
+
+SRP helps us define meaningful responsibilities.
+
+OCP helps us manage variation.
+
+LSP helps us create trustworthy abstractions.
+
+ISP helps us control contract size and client coupling.
+
+And DIP helps us control dependency direction.
+
+Ultimately, SOLID is not about making code look sophisticated.
+
+It's about making a system easier to understand, easier to test, safer to change, and more resilient as the system grows.
+
+And that's the perspective I would use when applying SOLID in a real production system: **not "Where can I apply SOLID?" but "Where will this system change, and how can I design the boundaries so that change remains localized?"**
