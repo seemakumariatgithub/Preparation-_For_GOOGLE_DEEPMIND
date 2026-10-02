@@ -99,7 +99,24 @@ And therefore:
               the sustainable throughput of the complete system."
 
 ================================================================================================================================================
+40. L6 architecture question
 
+          Imagine interviewer asks:          
+                    "We have 50,000 concurrent requests and our Spring Boot application uses a fixed thread pool of 500. 
+                    Would you replace it with virtual threads?"
+          
+          A strong answer:          
+                    "I would first characterize the workload. If the requests are 
+                    predominantly I/O-bound and spend significant time waiting on JDBC, HTTP or 
+                    other blocking operations, virtual threads are a strong candidate because they 
+                    allow us to preserve imperative code while increasing the number of concurrently 
+                    waiting tasks without requiring one expensive platform thread per request. 
+                    However, I would not treat virtual threads as the capacity solution by themselves. 
+                    I would benchmark end-to-end throughput and latency and inspect downstream constraints 
+                    such as database connection pools, HTTP connection pools, rate limits and synchronization hotspots. 
+                    I would also look for virtual-thread pinning and excessive ThreadLocal state."
+          
+          That's an L6-style answer.
 
 
 ================================================================================================================================================
