@@ -1,1 +1,334 @@
+Absolutely. For your Google DeepMind L6 Java interview, 
+
+Let's structure this as a speech that starts very intuitively, 
+then progressively reveals the JVM internals. 
+
+The goal is that a new developer can follow it, 
+while an interviewer can clearly see that you understand G1 
+as a concurrent, region-based, generational garbage collector and a latency/throughput engineering system.
+
+================================================================================================================================================
+How G1 GC Works Internally in Java 21
+
+Opening — The Big Picture
+
+          Let me explain G1 Garbage Collector in Java 21 from two perspectives.
+          
+          1. At a simple level, Garbage Collection means:          
+              Java automatically identifies objects that are no longer needed and reclaims the memory occupied by those objects.
+          
+         2. But at an architect's level, Garbage Collection is much more than simply deleting unused objects.          
+              It is a memory-management subsystem that continuously balances allocation rate, 
+              application throughput, latency, CPU consumption, and available heap space.
+          
+          And G1 — which stands for Garbage-First Garbage Collector 
+                 — was designed specifically to make that balancing act 
+                   more predictable for large heaps and latency-sensitive applications.
+          
+          So rather than thinking:  "GC periodically cleans the heap."
+          
+          I prefer to think:          
+                  " 1. G1 continuously observes the heap, 
+                    2. Identifies regions containing the most reclaimable memory, 
+                    3. Then schedules collection work while trying to meet a target pause time."
+          
+          That mental model is very important.
+================================================================================================================================================
+1. First: Let's See What Problem Is G1 Trying to Solve?
+
+            Imagine we have a Spring Boot application.            
+                              A request comes in:                              
+                                                    Client
+                                                       |
+                                                       v
+                                                  Load Balancer
+                                                       |
+                                                       v
+                                                  Spring Boot
+                                                       |
+                                                       v
+                                                  Controller
+                                                       |
+                                                       v
+                                                    Service
+                                                       |
+                                                       v
+                                                    Repository
+
+
+During processing, the application creates many objects:
+            Order order = new Order();
+            PaymentRequest paymentRequest = new PaymentRequest();
+            List<Item> items = new ArrayList<>();            
+            String response = buildResponse();
+
+These objects consume heap memory.
+
+Some objects live for milliseconds.
+Some live for seconds.
+Some live for minutes.
+And some live for the entire lifetime of the application.
+
+
+
+          For example:          
+                          HTTP Request
+                               |
+                               +---- Request DTO
+                               +---- Validation objects
+                               +---- Temporary collections
+                               +---- Database result objects
+                               +---- JSON serialization objects
+                               |
+                               v
+                          Response
+
+
+
+After the request finishes, many of those objects are no longer reachable.
+That creates garbage.
+So the JVM needs to reclaim that memory.
+The challenge is:
+          How do we reclaim memory without stopping the application for too long?
+That is where G1 becomes interesting.
+================================================================================================================================================
+2. The Traditional Mental Model: Heap as One Large Block
+
+                  A beginner might imagine the heap like this:
+                  
+                  +-------------------------------------------------------+
+                  |                    Java Heap                          |
+                  |                                                       |
+                  | Object Object Object Object Object Object Object      |
+                  |                                                       |
+                  +-------------------------------------------------------+
+                  
+                  If we wanted to collect garbage, we might scan a large portion of this memory.
+                  
+                  But imagine a 32 GB or 64 GB heap.
+                  
+                  Scanning and compacting everything at once could create a very large pause.
+                  
+                  G1 changes the model.
+                    Instead of treating the heap as one huge continuous area, G1 divides the heap into many regions.
+================================================================================================================================================
+3. G1's Most Important Concept: Regions
+
+           This is probably the first G1 concept I would explain in an interview.                  
+            Conceptually:                  
+                  Java Heap
+                  
+                  +------+------+------+------+------+------+
+                  | R01  | R02  | R03  | R04  | R05  | R06  |
+                  +------+------+------+------+------+------+
+                  | R07  | R08  | R09  | R10  | R11  | R12  |
+                  +------+------+------+------+------+------+
+                  | R13  | R14  | R15  | R16  | R17  | R18  |
+                  +------+------+------+------+------+------+
+                  
+                  The heap is divided into equally sized regions.
+                  
+                  A region can dynamically belong to different logical roles:
+                        Eden
+                        Survivor
+                        Old
+                        Humongous
+                        Free
+                        
+                  This is important:                        
+                        G1 does not have one permanently contiguous Eden area, 
+                        one permanently contiguous Old Generation area, etc.
+                        
+                    Instead, regions are dynamically assigned these roles.                        
+                        This gives G1 enormous flexibility.
+================================================================================================================================================
+4. Why Are Regions Important?
+
+                Suppose we have:                
+                        Region A → 10% garbage
+                        Region B → 20% garbage
+                        Region C → 90% garbage
+                        Region D → 70% garbage
+                        Region E → 5% garbage
+                        
+                If we had to collect the entire heap, that would be expensive.                        
+                        But G1 can say:                        
+                              "Region C contains a lot of reclaimable memory. 
+                                Region D also contains a lot. 
+                                Let's prioritize them."
+
+                That is where the name Garbage-First comes from.                
+                        G1 attempts to prioritize regions that provide the 
+                        greatest amount of memory reclaimed for the amount of work required.
+
+                So:                
+                      More garbage
+                            ↓
+                      More attractive collection candidate
+                            ↓
+                      More memory reclaimed
+                            ↓
+                      Better collection efficiency
+                
+                This is one of the most important architectural ideas behind G1.
+================================================================================================================================================
+5. G1 Is Generational in Java 21
+
+              Now we introduce another important concept.              
+              Most Java applications follow the generational hypothesis:              
+                      Most objects die young.
+
+              For example:              
+                              public Response process(Request request) {                              
+                                  ValidationResult result = validate(request);                              
+                                  PaymentCommand command = createCommand(request);                              
+                                  return execute(command);
+                              }
+              
+              Many temporary objects created during this request may become unreachable immediately after the request finishes.              
+              So it makes sense to treat young objects differently from long-lived objects.
+
+              Conceptually:              
+                            Young
+                             |
+                             |-- Eden
+                             |
+                             +-- Survivor
+              
+                            Old
+                             |
+                             +-- Long-lived objects
+              
+              In modern Java, G1 uses regions for these areas rather than requiring physically contiguous spaces.
+================================================================================================================================================
+6. What Happens When Java Creates an Object?
+
+              Let's go one level deeper into the JVM.
+
+              Suppose we write:              
+                                  Order order = new Order();              
+              The JVM needs memory for the object.
+              For high-performance allocation, a thread will often allocate into a TLAB.
+
+              TLAB means:              
+                            Thread Local Allocation Buffer
+              
+              Conceptually:              
+                            Eden Region
+              
+              +--------------------------------------+
+              | Thread A TLAB | Thread B TLAB | Free |
+              +--------------------------------------+
+================================================================================================================================================
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+================================================================================================================================================
+
+
+================================================================================================================================================
 
