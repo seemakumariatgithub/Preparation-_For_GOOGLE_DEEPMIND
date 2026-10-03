@@ -219,13 +219,100 @@ That is where G1 becomes interesting.
               +--------------------------------------+
               | Thread A TLAB | Thread B TLAB | Free |
               +--------------------------------------+
+
+          Instead of multiple threads fighting over the same allocation pointer, each thread can have its own allocation buffer.          
+          So allocation becomes extremely fast.
+          Conceptually:          
+                              Java Thread
+                                   |
+                                   v
+                                 TLAB
+                                   |
+                                   v
+                              Eden Region
+          
+          This is one reason Java can allocate enormous numbers of short-lived objects efficiently.
 ================================================================================================================================================
+7. Objects Start Their Life in Young Regions
+          Most newly allocated objects begin in Eden regions.
+          
+          For example:          
+                    +------+------+------+------+------+
+                    | Eden | Eden | Eden | Eden | Old  |
+                    +------+------+------+------+------+
+          
+          As the application continues running:                              
+                              Eden
+                               ↓
+                              Eden fills
+                               ↓
+                              Young GC
 
+          Eventually G1 needs to reclaim young-generation memory.
 ================================================================================================================================================
+8. What Exactly Is a Young GC?
 
+          Suppose we have:                             
+                              Eden Region 1
+                              Eden Region 2
+                              Eden Region 3
+                              Survivor Region
+          
+          Some objects are still alive.          
+          Some are garbage.          
+          For example:          
+                    Eden          
+                              +------------------------------------------------+
+                              | Live | Garbage | Garbage | Live | Garbage | Live |
+                              +------------------------------------------------+
 
+          G1 cannot simply erase the region because some objects are still alive.          
+          So it identifies the live objects and copies them to another region.
+
+          Conceptually:
+          
+          Before:          
+                    Eden
+                    +--------------------------------+
+                    | L | G | G | L | G | L | G     |
+                    +--------------------------------+
+                    
+                                  |
+                                  | Copy live objects
+                                  v
+                    
+                    Survivor
+                    +--------------------------------+
+                    | L | L | L |                  |
+                    +--------------------------------+
+          
+          This gives us an important principle:
+          
+                              G1 generally reclaims memory by evacuating live objects 
+                              out of selected regions and then reusing those regions.
 ================================================================================================================================================
+9. What Does "Stop-The-World" Mean?
 
+          Some GC operations require application threads to pause.          
+          These are called:          
+                              Stop-The-World, or STW, pauses.
+          
+          Conceptually:         
+                              Application Threads
+                              Running Running Running Running
+                              
+                                            ↓
+                              
+                                        GC Pause
+                              
+                                            ↓
+                              
+                              Application Threads
+                              Running Running Running Running
+
+          During the pause, Java application threads are stopped so that GC can perform operations safely.          
+          But G1 tries to keep these pauses bounded and predictable.          
+          That is one of its major design goals.
 ================================================================================================================================================
 
 ================================================================================================================================================
