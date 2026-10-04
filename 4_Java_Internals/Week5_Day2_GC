@@ -314,13 +314,104 @@ That is where G1 becomes interesting.
           But G1 tries to keep these pauses bounded and predictable.          
           That is one of its major design goals.
 ================================================================================================================================================
+10. G1 Uses a Pause-Time Goal:
 
+          Suppose the application is configured with:          
+                                        -XX:MaxGCPauseMillis=200
+          
+          This does not mean:          
+                              "Every GC pause will always be less than 200 ms."
+          
+          Instead, it is better understood as a pause-time goal used by G1's heuristics and scheduling decisions.          
+          G1 estimates how much work can fit into a target pause.          
+          For example:          
+                              Target pause
+                                   |
+                                   v
+                              How many regions can we process?
+                                   |
+                                   v
+                              Select collection set
+                                   |
+                                   v
+                              Perform evacuation
+                              
+          This is a very important L6-level distinction.
 ================================================================================================================================================
+11. The Collection Set:
 
+                    Now we reach one of G1's core internal concepts:                    
+                              Collection Set, or CSet.
+                    
+                    A CSet is the set of regions selected for collection during a GC pause.
+                    
+                    For example:
+                              Heap
+                              
+                              +------+------+------+------+------+
+                              | Eden | Eden | Old  | Old  | Old  |
+                              +------+------+------+------+------+
+                              | Old  | Eden | Old  | Old  | Free |
+                              +------+------+------+------+------+
+                              
+                                        ↓                              
+                              Selected for this pause
+                              
+                              +------+------+ 
+                              | Eden | Eden |
+                              +------+------+
+                                 +
+                              +------+
+                              | Old  |
+                              +------+
+                              
+                              These selected regions form the collection set.
+                              G1 attempts to choose a collection set that provides useful reclamation while staying within the pause-time objective.
 ================================================================================================================================================
+12. But There Is a Problem: References Between Regions
 
+          Now let's consider something more complicated.          
+          Suppose:          
+                    Region A
+                        |
+                        | reference
+                        v
+                    Region B
+          
+          Region A may contain an object that points to an object in Region B.          
+          If G1 wants to evacuate Region B, it needs to know:          
+                              "Who is pointing into this region?"
+          
+          Otherwise, it could miss references.          
+          This is where remembered sets become important.
 ================================================================================================================================================
+13. Remembered Sets:
 
+          Each region can maintain information about references coming from other regions.          
+          Conceptually:          
+                              Region A
+                              +----------------+
+                              | Object X       |
+                              |      |         |
+                              +------|---------+
+                                     |
+                                     v
+                              Region B
+                              +----------------+
+                              | Object Y       |
+                              +----------------+
+          
+          G1 maintains remembered-set information so that it can identify relevant cross-region references.          
+          Conceptually:          
+                              Region B
+                                ^
+                                |
+                                | Remembered Set
+                                |
+                              Region A
+          
+          This allows G1 to avoid scanning the entire heap every time it collects a region.          
+          That is a huge scalability advantage.
 
 ================================================================================================================================================
 
