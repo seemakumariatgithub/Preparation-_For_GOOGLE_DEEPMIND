@@ -1,3 +1,269 @@
 The topic will be:
 
     “How G1 Young GC works internally in Java 21 — from a Spring Boot request to object evacuation.”
+
+## How G1 Young GC Works Internally in Java 21:
+
+            Let me explain G1 Young GC by following a simple request through a Java 21 Spring Boot application.
+            
+            When a request arrives at a Spring Boot service, the application creates many Java objects—request DTOs, validation objects, collections, database results, response objects, and objects created during JSON serialization.
+            
+            All these objects need memory, and most of them are allocated on the Java heap.
+            
+            The important observation is that **most application objects are short-lived**. They are created for one request, used for a short period, and then become unreachable.
+            
+            This observation is one of the fundamental ideas behind generational garbage collection.
+
+---
+
+### 1. G1 divides the heap into regions
+
+        In G1, the heap is not treated as one large contiguous young and old area.
+        
+        Instead, the heap is divided into many equal-sized **regions**.
+        
+        At different points in time, a region can act as:
+        
+        * Eden
+        * Survivor
+        * Old
+        * Humongous
+        * Free
+        
+        This gives G1 flexibility to decide which regions should be collected.
+        
+        When the application allocates a new object, it generally allocates it inside an Eden region.
+        
+        For fast allocation, Java threads commonly use **TLABs — Thread Local Allocation Buffers**.
+        
+        A TLAB allows a thread to allocate objects without synchronizing with other application threads for every allocation.
+
+---
+
+### 2. What happens when Eden fills?
+
+            Now imagine that the application has processed thousands of requests.
+            
+            The Eden regions start filling up.
+            
+            At some point, G1 determines that a **Young GC** should occur.
+            
+            A Young GC is normally a **Stop-The-World pause**.
+            
+            That means application threads temporarily stop while the collector performs the evacuation work.
+            
+            The important thing is that G1 is not simply saying:
+            
+            > "Delete everything in Eden."
+            
+            Instead, G1 asks:
+            
+            > "Which objects are still alive and reachable?"
+
+---
+
+### 3. G1 identifies live objects
+
+            G1 starts from **GC Roots**.
+            
+            Examples of GC roots include:
+            
+            * active thread stacks
+            * static references
+            * JNI references
+            * JVM/runtime structures
+            
+            From these roots, the collector traces references through the object graph.
+            
+            If an object can still be reached from the roots, it is considered live.
+            
+            If no path exists from a GC root to an object, that object is unreachable and its memory can eventually be reclaimed.
+
+---
+
+### 4. G1 evacuates live objects
+
+            Suppose an Eden region contains 100 MB of objects.
+            
+            Perhaps only 10 MB is still alive.
+            
+            G1 does not need to preserve the entire region.
+            
+            It copies the 10 MB of live objects into another region, typically a Survivor region or, depending on age and policy, an Old region.
+            
+            This process is called **evacuation**.
+            
+            Once the live objects have been successfully evacuated, the original Eden region can be completely reclaimed.
+            
+            This is one of the major advantages of G1's region-based design.
+            
+            Instead of compacting the entire heap, G1 can reclaim selected regions incrementally.
+
+---
+
+### 5. But what about references between regions?
+
+            This is where G1 becomes more interesting internally.
+            
+            Suppose an object in an old region points to an object in Eden.
+            
+            During a young collection, the collector needs to know about such cross-region references.
+            
+            Scanning every object in every old region during every Young GC would be extremely expensive.
+            
+            Therefore G1 maintains information about cross-region references using mechanisms involving:
+
+            **card tables, write barriers, and remembered sets.**
+            
+            When application code modifies references, write barriers help record the relevant information.
+            
+            G1 can then use remembered-set information to identify references into the regions being collected without scanning the entire heap every time.
+            
+            This is an important scalability mechanism.
+
+---
+
+### 6. What happens to the survivors?
+
+            After evacuation, the surviving objects are placed into Survivor regions.
+            
+            Objects that survive multiple collections may eventually be promoted to Old regions.
+            
+            So conceptually we get:
+            
+            **Eden → Survivor → Old**
+            
+            although the actual G1 implementation is region-based rather than being a permanently fixed contiguous young/old layout.
+
+---
+
+### 7. Why is this useful?
+
+                The key advantage is that G1 performs garbage collection incrementally.
+                
+                It doesn't wait until the entire heap is full and then perform one enormous collection.
+                
+                Instead, it continuously manages regions and tries to select useful regions while keeping pause times within a target.
+                
+                For example, we can configure:
+                
+                ```text
+                -XX:+UseG1GC
+                -XX:MaxGCPauseMillis=200
+                ```
+                
+                The second option is a **pause-time goal**, not a guarantee.
+                
+                G1 uses this goal as part of its collection-set and scheduling decisions.
+
+---
+
+### 8. Spring Boot example
+
+                    Imagine an ecommerce order service receiving:
+                    
+                    ```text
+                    POST /orders
+                    ```
+                    
+                    The request creates:
+                    
+                    ```text
+                    OrderRequest
+                       ↓
+                    Validation objects
+                       ↓
+                    Service-layer objects
+                       ↓
+                    Repository/DB result objects
+                       ↓
+                    OrderResponse
+                       ↓
+                    JSON serialization objects
+                    ```
+                    
+                    Many of these objects become unreachable shortly after the request finishes.
+                    
+                    They therefore become candidates for reclamation during future young collections.
+                    
+                    Meanwhile, genuinely long-lived objects—such as caches, application configuration, 
+                    persistent data structures, and long-lived service state—remain reachable and can survive into the Old generation.
+
+---
+
+### Closing
+
+So, if I had to summarize G1 Young GC in one sentence:
+
+        > **G1 Young GC identifies live objects in young regions, evacuates those objects 
+            into Survivor or Old regions, and then reclaims the evacuated regions, 
+            while remembered sets and write barriers allow it to handle cross-region references efficiently.**
+        
+        From an architect's perspective, the important idea is not simply that Java automatically cleans memory.
+        
+        The important idea is that **
+                G1 manages memory as a collection of regions and 
+            incrementally performs reclamation based on object lifetime, reachability, 
+            cross-region references, and pause-time goals.**
+        
+        That is what allows a Java 21 Spring Boot service to handle high allocation 
+        rates without relying on large, infrequent whole-heap collections.
+
+===============================================================================================================================================
+
+
+2. Now let's go underneath the presentation
+
+The easiest way to visualize the complete flow is:
+                                                        
+                                                        HTTP Request
+                                                             │
+                                                             ▼
+                                                        Spring Boot Controller
+                                                             │
+                                                             ▼
+                                                        Service / Repository
+                                                             │
+                                                             ▼
+                                                        Java objects allocated
+                                                             │
+                                                             ▼
+                                                        TLAB
+                                                             │
+                                                             ▼
+                                                        Eden Regions
+                                                             │
+                                                             │ Eden becomes sufficiently full
+                                                             ▼
+                                                             G1 Young GC
+                                                             │
+                                                             ├── Stop application threads
+                                                             │
+                                                             ├── Identify GC Roots
+                                                             │
+                                                             ├── Trace reachable objects
+                                                             │
+                                                             ├── Consult remembered sets
+                                                             │
+                                                             ├── Select Collection Set
+                                                             │
+                                                             ├── Evacuate live objects
+                                                             │       │
+                                                             │       ├── Survivor
+                                                             │       └── Old
+                                                             │
+                                                             ├── Reclaim evacuated regions
+                                                             │
+                                                             └── Resume application
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
