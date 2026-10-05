@@ -414,9 +414,66 @@ That is where G1 becomes interesting.
           That is a huge scalability advantage.
 
 ================================================================================================================================================
+The complete startup picture
 
+Keep this architecture in your mind:
+                                    Kubernetes / VM
+                                           |
+                                           v
+                                    Container Process
+                                           |
+                                           v
+                                    ┌───────────────┐
+                                    │   JVM Startup │
+                                    └───────┬───────┘
+                                            |
+                                  Select GC from JVM flags
+                                            |
+                              +-------------+-------------+
+                              |             |             |
+                            Serial       Parallel        G1
+                                                          |
+                                                          +---- ZGC alternative
+                                            |
+                                            v
+                                     Initialize Heap
+                                            |
+                                            v
+                                  Initialize GC subsystem
+                                            |
+                                            v
+                                      JVM starts
+                                            |
+                                            v
+                                   SpringApplication
+                                            |
+                                            v
+                                     Spring Boot
+                                            |
+                                            v
+                                     Controllers
+                                            |
+                                            v
+                                       Services
+                                            |
+                                            v
+                                      Repositories
+                                            |
+                                            v
+                                     Object Allocation
+                                            |
+                                            v
+                                           GC
 
 ================================================================================================================================================
+Spring Boot runs on top of the JVM; it doesn't own the garbage collector.
+
+You select the collector using JVM startup options, typically through the command line, 
+Docker/Kubernetes environment variables, or deployment configuration.
+
+For your Java 21 Spring Boot services, I'd use G1 as the initial baseline, 
+observe the workload, and only move to ZGC/Parallel/Serial when the application's actual latency, 
+throughput, heap, and CPU characteristics justify it.
 
 ================================================================================================================================================
 
