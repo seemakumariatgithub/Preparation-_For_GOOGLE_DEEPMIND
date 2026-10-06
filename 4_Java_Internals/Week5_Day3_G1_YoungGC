@@ -257,6 +257,627 @@ The easiest way to visualize the complete flow is:
                                                              └── Resume application
 
 ===============================================================================================================================================
+Now let's understand each layer.
+
+3. Layer 1 — Application allocation
+
+            Imagine:                    
+                    @PostMapping("/orders")
+                    public OrderResponse createOrder(OrderRequest request) {                    
+                        Order order = orderService.createOrder(request);                    
+                        return OrderResponse.from(order);
+                    }
+
+This tiny method may indirectly create hundreds or thousands of objects.
+
+For example:
+                OrderRequest
+                ValidationResult
+                String objects
+                Collections
+                Database entities
+                Hibernate/JDBC objects
+                Order
+                OrderItems
+                OrderResponse
+                Jackson serialization objects
+                temporary intermediate objects
+
+Some objects may live for milliseconds.
+
+Others may live for minutes, hours, or the lifetime of the application.
+
+This difference in object lifetime is fundamental to GC design.
+===============================================================================================================================================
+4. Layer 2 — TLAB:
+
+        Suppose several Java threads are simultaneously processing requests.
+            
+    If every allocation required synchronization:
+                                                Thread A ─┐
+                                                Thread B ─┼──> shared allocation area
+                                                Thread C ─┘
+    allocation would become expensive.
+    
+    Instead, HotSpot commonly gives each Java thread a small allocation buffer:
+
+        Thread A → TLAB A
+        Thread B → TLAB B
+        Thread C → TLAB C
+
+Then:
+        new Order()
+             ↓
+        Thread-local allocation
+             ↓
+        TLAB
+             ↓
+        Eden region
+
+This makes the extremely common operation of allocating small objects very fast.
+
+===============================================================================================================================================
+5. Layer 3 — G1 regions
+
+            This is where G1 differs conceptually from older contiguous-generation designs.
+            
+            Think of the heap as:
+                                +------+------+------+------+------+------+------+
+                                | Eden | Eden | Old  | Eden | Surv | Free | Old |
+                                +------+------+------+------+------+------+------+
+
+            These are logical roles of regions.
+            
+            A region is a fixed-size chunk of heap memory.
+            
+            G1 can dynamically assign region roles.
+            
+            So you should avoid saying:            
+                    "The first 40% of the heap is young and the remaining 60% is old."
+            
+            That is not the right mental model for G1.
+            
+            Instead:            
+                    The heap is a collection of regions whose roles can change over time.
+            
+            That is a very good L6 interview distinction.
+===============================================================================================================================================
+6. Layer 4 — Why does Young GC happen?
+
+Suppose:
+            Eden
+            ────────────────────
+            ████████████████████
+            ████████████████████
+            ████████████████████
+
+    Most objects created by requests are temporary.    
+    Eventually G1 needs more space for allocation.    
+    It initiates a young collection.    
+    The application threads are temporarily paused.
+    
+    This is why you will often hear:    
+                        Young GC is a Stop-The-World evacuation pause.
+    
+    Do not say that G1 is completely pause-free.    
+    It isn't.
+    
+    That's an important interview correction.
+
+===============================================================================================================================================
+7. Layer 5 — How does G1 know what is alive?
+
+            This is the heart of garbage collection.
+            
+            Suppose we have:
+                            GC Root
+                               │
+                               ▼
+                            Object A
+                               │
+                               ▼
+                            Object B
+
+            A and B are reachable.
+            
+            Therefore:            
+                        A → LIVE
+                        B → LIVE
+
+            But:           
+                    Object X → Object Y
+            
+            has no connection to any GC root.
+            
+            Therefore:            
+                        X → unreachable
+                        Y → unreachable
+            
+            Those objects are garbage.
+            
+            The collector doesn't ask:            
+                    "Did the developer call delete?"
+            
+            Java doesn't have manual object deletion.
+            
+            It asks:  "Can this object still be reached from the GC roots?"
+===============================================================================================================================================
+8. Layer 6 — The cross-region problem
+
+            This is one of the most important parts for an L6 interview.
+            
+            Imagine:
+                        Old Region
+                        ┌──────────────┐
+                        │ Object A     │
+                        │      │       │
+                        └──────┼───────┘
+                               │
+                               ▼
+                        Eden Region
+                        ┌──────────────┐
+                        │ Object B     │
+                        └──────────────┘
+
+                Object A is in Old.                
+                Object B is in Eden.                
+                A points to B.
+                
+                Now G1 wants to collect Eden.                
+                It cannot simply look only inside Eden because an Old object may point into Eden.                
+                But scanning the entire Old generation during every young GC would be expensive.
+                
+                That's why G1 maintains remembered-set information.
+===============================================================================================================================================
+9. Card table → remembered set → write barrier
+
+        These three concepts are frequently confused.        
+        Think of them as different layers.
+        
+        Card table:        
+                    The heap is divided conceptually into small card regions for tracking modifications.
+
+                    Heap
+                    ────────────────────────
+                    | card | card | card |
+                    | card | card | card |
+                    ────────────────────────
+
+                    A card can indicate that an area may contain a reference that needs attention.
+                    
+        Write barrier:
+                    
+                    When application code changes a reference:                    
+                            oldObject.child = youngObject;
+                    
+                    the JVM can execute additional barrier logic around that reference update.
+                    
+                    Conceptually:
+                                    Application write
+                                           ↓
+                                    Write barrier
+                                           ↓
+                                    Record relevant card/reference information
+
+        Remembered set:
+        
+                    G1 maintains per-region information about references from elsewhere into that region.
+                    
+                    Conceptually:
+                                    Region B
+                                       ↑
+                                       │
+                                    Remembered Set
+                                       │
+                                       └── references from other regions
+
+                    Therefore, during a Young GC, G1 can efficiently identify external references into the regions being collected.
+
+        Excellent L6 phrasing:
+                
+                You can say:                
+                            "Remembered sets allow G1 to avoid scanning the entire heap for inter-region 
+                            references during every collection, 
+                            while write barriers maintain the metadata needed to keep those remembered sets useful."
+                
+                That is much stronger than simply saying:                
+                            "G1 uses remembered sets."
+
+===============================================================================================================================================
+10. Layer 7 — Evacuation
+
+            Suppose Eden contains:
+                                Eden Region:                                
+                                            A → dead
+                                            B → live
+                                            C → dead
+                                            D → live
+                                            E → dead
+
+G1 can conceptually transform this into:
+
+                            Eden                 Survivor
+                            
+                            A ✕
+                            B ──────────────────> B'
+                            C ✕
+                            D ──────────────────> D'
+                            E ✕
+
+Now:
+        Old Eden Region
+              ↓
+        completely reclaimed
+
+This is extremely powerful.
+
+Instead of individually deleting:
+                                    A
+                                    C
+                                    E
+
+G1 evacuates the objects that matter and then reclaims the region.
+This also helps with compaction.
+===============================================================================================================================================
+11. What about object references after copying?
+
+            Suppose:            
+                    A ──→ B
+            
+            and B gets moved:
+                    
+                    Old B address
+                          ↓
+                    New B address
+            
+            The JVM needs references to point to the object's new location.
+            This is part of the machinery involved in evacuation and object forwarding.
+            
+            At the conceptual level:
+                                    Old object
+                                        │
+                                        ▼
+                                    Evacuated object
+                                        │
+                                        ▼
+                                    References updated
+
+
+            You don't need to claim a simplistic "forwarding pointer works exactly this way everywhere" 
+            unless the interviewer asks for implementation-level source details, because HotSpot's precise mechanics can vary.
+
+
+===============================================================================================================================================
+12. Survivor and Old promotion
+
+Suppose:
+        Young object
+              ↓
+        survives GC
+              ↓
+        Survivor
+              ↓
+        survives again
+              ↓
+        Survivor
+              ↓
+        survives sufficiently long
+              ↓
+        Old
+
+The basic intuition is:
+                    Eden
+                      ↓
+                    Survivor
+                      ↓
+                    Old
+
+But don't present the age threshold as a rigid guarantee.
+G1 uses policies and heuristics around aging, survivor sizing, promotion, and available regions.
+===============================================================================================================================================
+13. Why G1 can scale better than a naive full-heap collector
+
+        Imagine a 32 GB heap.
+        
+        A naive approach could be:
+                                    Stop application
+                                            ↓
+                                    Scan huge heap
+                                            ↓
+                                    Find garbage
+                                            ↓
+                                    Compact everything
+                                            ↓
+                                    Resume application
+
+That can create unacceptable pause times.
+
+G1 instead thinks more incrementally:
+                                        Heap
+                                         ↓
+                                        Regions
+                                         ↓
+                                        Collect selected regions
+                                         ↓
+                                        Evacuate live objects
+                                         ↓
+                                        Reclaim regions
+                                         ↓
+                                        Continue application
+
+And separately, G1 performs concurrent marking work to understand the state of the old generation.
+
+That is the fundamental architectural idea.
+===============================================================================================================================================
+14. Where does Collection Set fit?
+
+        During a GC pause, G1 builds a Collection Set, commonly abbreviated CSet.
+        
+        Think:
+                Heap regions
+                
+                R1  Eden      ← selected
+                R2  Eden      ← selected
+                R3  Old       ← selected
+                R4  Old
+                R5  Survivor
+                R6  Old
+                R7  Free
+
+The selected regions form the collection set: CSet = {R1, R2, R3}
+G1 then performs evacuation for those regions.
+
+For a Young GC, the collection set is primarily young regions.
+For a Mixed GC, it can include:
+                                Young regions
+                                       +
+                                selected Old regions
+That's an important bridge to your next topic.
+===============================================================================================================================================
+15. Young GC vs Mixed GC
+
+            Young GC:                        
+                        Conceptually:
+                                        Eden + Survivor
+                                               ↓
+                                         evacuation
+                                               ↓
+                                        Survivor / Old
+
+
+            Mixed GC:
+                    Conceptually:
+                                    Young regions
+                                          +
+                                    selected Old regions
+                                          ↓
+                                        evacuation
+                                          ↓
+                                    Survivor / Old / Free
+
+            Why does G1 collect Old regions?            
+                Because eventually the application accumulates long-lived objects.            
+                G1's concurrent marking determines information about old-region liveness.            
+                Then G1 can choose old regions that are worthwhile to reclaim.
+            
+            That's where the name Garbage-First becomes meaningful.
+===============================================================================================================================================
+16. What exactly does "Garbage-First" mean?
+
+        A common oversimplification is:        
+                    "G1 sorts regions by percentage of garbage."
+        
+        That's not a precise description.
+
+        A better L6 explanation is:
+
+                G1 uses internal heuristics and cost predictions to select regions whose 
+                reclamation provides useful memory recovery within its pause-time objectives.
+
+        So the collector considers both:
+        
+                    Potential reclaim
+                            +
+                    Estimated evacuation/processing cost
+                            +
+                    Pause-time goal
+        
+        This is a much more architecturally accurate explanation.
+===============================================================================================================================================
+17. Spring Boot production example
+
+Imagine your service has:
+                         Kubernetes Pod
+                              │
+                              ▼
+                        Spring Boot
+                              │
+                              ▼
+                        OrderController
+                              │
+                              ▼
+                        OrderService
+                              │
+                              ▼
+                        OrderRepository
+                              │
+                              ▼
+                        PostgreSQL
+
+Suppose the service processes:
+                10,000 requests/sec
+
+Every request creates temporary objects.
+
+Therefore:
+            High request rate
+                   ↓
+            High allocation rate
+                   ↓
+            Eden fills quickly
+                   ↓
+            Young GC frequency increases
+
+If GC cannot keep up:
+                        Allocation rate
+                               >
+                        Reclamation capability
+
+eventually memory pressure increases.
+This is why allocation rate is one of the most important GC performance metrics.
+
+===============================================================================================================================================
+18. Memory leak vs high allocation rate
+
+    This is another excellent interview distinction.
+    
+    High allocation rate
+    
+        Objects:        
+                    created
+                     ↓
+                    used
+                     ↓
+                    become unreachable
+                     ↓
+                    GC
+                     ↓
+                    reclaimed
+This is not necessarily a memory leak.
+
+Memory leak:
+        Objects:
+                    created
+                     ↓
+                    stored somewhere unnecessarily
+                     ↓
+                    remain reachable
+                     ↓
+                    GC cannot reclaim
+                     ↓
+                    Old generation grows
+For example:
+                static Map<String, Object> cache = new HashMap<>();
+    
+ If entries are continuously added without eviction:
+            Request
+              ↓
+            Object
+              ↓
+            static Map
+              ↓
+            GC Root
+
+The object remains reachable.
+
+GC cannot say:
+            "The developer probably doesn't need this anymore."
+
+GC only knows reachability.
+This is why GC cannot fix logical memory leaks.
+
+===============================================================================================================================================
+
+19. What should you say if the interviewer asks: "Is G1 concurrent?"
+
+        The best answer:
+        
+        "Partially. G1 combines Stop-The-World phases, such as evacuation pauses, 
+        with concurrent phases such as marking. So I would not describe G1 as a 
+        completely concurrent collector. Its design goal is to perform enough work concurrently 
+        and incrementally to reduce the duration and frequency of disruptive pauses."
+        
+        That is an excellent L6-level answer.
+
+===============================================================================================================================================
+20. What should you say if they ask: "Why not just use ZGC?"
+
+    Don't answer:    
+                "ZGC is better than G1."
+    
+    Instead:
+
+            "The collector should be selected based on workload characteristics rather than reputation. 
+            G1 is a strong general-purpose choice when we want a balance between throughput and 
+            predictable pauses. 
+            If extremely low latency is the dominant requirement and the workload 
+            benefits from ZGC's design, I would benchmark ZGC. 
+            For throughput-oriented workloads, Parallel GC may still be attractive."
+
+Then mention:
+                Latency SLA
+                Heap size
+                Allocation rate
+                Live set
+                CPU budget
+                Throughput requirements
+                Pause sensitivity
+
+That is much closer to an L6 architectural decision.
+
+===============================================================================================================================================
+21. Your complete mental model
+
+I want you to remember this picture:
+
+                                     SPRING BOOT REQUEST
+                                             │
+                                             ▼
+                                     Java object allocation
+                                             │
+                                             ▼
+                                            TLAB
+                                             │
+                                             ▼
+                                       G1 Eden Region
+                                             │
+                                        Eden fills
+                                             │
+                                             ▼
+                                       YOUNG GC PAUSE
+                                             │
+                              ┌──────────────┴──────────────┐
+                              │                             │
+                         GC Roots                    Remembered Sets
+                              │                             │
+                              └──────────────┬──────────────┘
+                                             ▼
+                                      Find live objects
+                                             │
+                                             ▼
+                                        Evacuation
+                                        /         \
+                                       /           \
+                                 Survivor          Old
+                                       \           /
+                                        \         /
+                                         ▼       ▼
+                                      Old regions
+                                             │
+                                             ▼
+                                     Eden reclaimed
+                                             │
+                                             ▼
+                                     Application resumes
+
+And the five words I want you to associate with G1 Young GC are:
+
+            Regions → Reachability → Remembered Sets → Evacuation → Reclamation
+
+If you can explain those five concepts clearly, you already have the core of the topic.
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
 
 
 
@@ -266,4 +887,210 @@ The easiest way to visualize the complete flow is:
 
 ===============================================================================================================================================
 
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
 
