@@ -394,7 +394,44 @@ L6 interview layer — architecture, performance, failure modes, diagnostics, an
           
 
 ===================================================================================================================================================
+15. Your learning sequence from here
 
+Now that we have JVM Memory Model + G1 Young GC, I recommend this exact sequence:
+
+                 JVM MEMORY MODEL
+                        │
+          ┌─────────────┴─────────────┐
+          ▼                           ▼
+        HEAP                    NON-HEAP/NATIVE
+          │                           │
+          ▼                           ├── Metaspace
+      G1 Regions                     ├── Code Cache
+          │                          ├── Thread Stacks
+          ▼                          └── Direct Memory
+    Young GC
+          │
+          ├── GC Roots
+          ├── TLAB
+          ├── Card Table
+          ├── Write Barrier
+          ├── Remembered Set
+          ├── CSet
+          └── Evacuation
+                    │
+                    ▼
+                Mixed GC
+                    │
+                    ▼
+             Concurrent Marking
+                    │
+                    ▼
+              G1 Full Lifecycle
+                    │
+                    ▼
+              GC LOG ANALYSIS
+                    │
+                    ▼
+           PRODUCTION TUNING
 
 ===================================================================================================================================================
 
