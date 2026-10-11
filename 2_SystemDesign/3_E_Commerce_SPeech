@@ -1,0 +1,528 @@
+# 1. Introduction and problem clarification
+
+**Time: 0–4 minutes**
+
+I would like to design a large-scale e-commerce platform similar in functionality to Amazon or Flipkart.
+
+Before jumping into the architecture, I want to clarify the business requirements, establish the scale at 
+which the system needs to operate, and identify the areas where correctness is more important than simply maximizing throughput.
+
+My approach will be to derive the architecture from the workload and business requirements rather than starting with a predefined list of technologies.
+
+I will first cover the functional and non-functional requirements. Then I will estimate 
+traffic and storage, define the APIs and data ownership, and present the high-level architecture. 
+After that, I will go deeper into checkout, inventory reservation, order management, and payment processing 
+because these are the most critical distributed-system problems in an e-commerce platform.
+
+Finally, I will cover scalability, consistency, failure recovery, observability, and the trade-offs behind the design.
+
+Let me begin with the requirements.
+
+From a customer perspective, I want the platform to support searching and browsing products, viewing product 
+details, adding items to a shopping cart, checking out, making payments, placing orders, and tracking those orders.
+
+From a seller perspective, I want sellers to be able to create or update product information and maintain inventory.
+
+For this initial design, I will keep seller onboarding, advanced recommendations, advertising, warehouse route optimization,
+returns, and sophisticated fraud detection outside the primary scope. The architecture should allow these capabilities to be 
+integrated later without requiring us to redesign the entire platform.
+
+
+Now, let me identify the non-functional requirements.
+
+First is scalability. The platform should handle normal traffic as well as sudden increases during promotions and flash sales.
+Second is availability. Product browsing and search should remain usable even if a non-critical downstream component is unavailable.
+Third is correctness. We must prevent duplicate orders, avoid overselling inventory, and ensure that payment outcomes are reconciled correctly.
+Fourth is performance. Product discovery should be responsive, and checkout should have predictable latency.
+Fifth is durability. Once an order is confirmed, we must not silently lose it because an application instance crashes or a message fails to publish.
+Finally, we need security, auditability, and recoverability.
+
+I want to make one distinction explicit: availability and correctness are not interchangeable. 
+A system that returns a successful response quickly but sells the last available item to two customers has failed its business requirement.
+
+For initial planning, I would propose a search latency target below 300 milliseconds at p95 and 
+a high availability target for critical purchase operations, subject to business agreement and validation through load testing. 
+I would treat these as proposed service-level objectives, not as guaranteed outcomes.
+
+With the scope established, I will estimate the workload before selecting the architecture.
+
+# 2. Capacity estimation and workload assumptions
+
+**Time: 4–8 minutes**
+
+I will use explicit assumptions rather than pretend to know the actual internal traffic of an existing e-commerce company.
+
+Suppose we have 100 million registered users and 10 million daily active users.
+
+Assume each daily active user generates approximately 20 requests per day across browsing, search, product details, cart, and other operations.
+
+That gives us:
+
+10 million users multiplied by 20 requests, which equals 200 million requests per day.
+Dividing 200 million by 86,400 seconds gives us approximately 2,315 requests per second on average.
+E-commerce traffic is not uniform. Traffic can increase significantly during promotions, 
+holidays, or flash sales. For an initial estimate, I will use a peak-to-average multiplier of ten.
+
+That gives approximately 23,150 requests per second. I will round this to 25,000 peak requests per second for the initial architecture.
+These are planning assumptions. Before production sizing, I would validate them against actual traffic distributions, 
+concurrent sessions, request fan-out, and peak checkout behavior.
+
+Next, I will estimate the workload distribution.
+
+For illustration, 
+I will allocate 50 percent to browsing, 
+20 percent to search, 
+10 percent to product details, 
+10 percent to cart operations, 
+5 percent to checkout and orders, 
+and 5 percent to other operations.
+
+At 25,000 peak requests per second, that gives us approximately 12,500 browsing requests, 
+5,000 search requests, 2,500 product-detail requests, 2,500 cart requests, 
+and 1,250 checkout and order requests per second.
+
+The key observation is that most requests are read-oriented, but the purchase path has stronger correctness requirements.
+
+This means I should optimize the read path aggressively while keeping the transactional write path controlled and reliable.
+
+I would also avoid sizing checkout solely from the total API request rate. I would separately estimate concurrent 
+checkout attempts, order creation rate, payment-provider throughput, inventory contention, and the number of downstream calls generated by each checkout.
+
+Now, let me estimate storage.
+
+Suppose the catalog contains 100 million products, with an average metadata payload of 5 kilobytes per product.
+
+That gives approximately 500 gigabytes of raw product metadata.
+
+For images, suppose each product has five images averaging 500 kilobytes each. That produces approximately 250 terabytes of image data.
+
+I would not store these image binaries inside the primary relational product database. 
+I would use object storage and a content delivery network, or CDN, because large binary 
+objects have different storage and delivery characteristics from transactional metadata.
+
+For orders, suppose the platform processes five million orders per day, and the average logical 
+order record and associated basic item data occupy approximately 5 kilobytes.
+
+That is approximately 25 gigabytes per day, or about 9.1 terabytes per year before accounting for 
+indexes, replicas, audit history, backups, and additional order-item records.
+
+These estimates help identify the likely scaling pressure points: image delivery, read-heavy catalog traffic, 
+search indexing, inventory contention, and durable order storage.
+
+They also tell me that I should not introduce every possible scaling mechanism immediately. 
+I should first design a sound architecture, then validate its limits through measurements and evolve it.
+
+# 3. API design and domain boundaries
+
+**Time: 8–11 minutes**
+
+Before drawing the architecture, I want to establish the main API boundaries and the ownership of the data.
+For product details, I would expose a GET endpoint such as `/v1/products/{productId}`.
+For search, I would use an endpoint such as `/v1/search?q=nike+running+shoes&page=1&size=20`.
+For the cart, I would provide endpoints to retrieve a cart and add, remove, or update its items.
+For checkout, I would provide an endpoint such as `POST /v1/checkouts`.
+For order creation, I would expose an endpoint that accepts a stable idempotency key so that retries do not create duplicate orders.
+For payment processing, I would expose a controlled payment operation associated with a specific order and payment attempt.
+Finally, I would provide an order-status endpoint so that customers can retrieve the current state of their purchase.
+
+For each API, I would define authentication, authorization, validation, pagination, timeouts, 
+error semantics, and rate limits. These are not merely implementation details; they form part of the system's reliability and security contract.
+
+Now, I want to discuss idempotency because it will become important in the checkout flow.
+
+In a distributed system, a client may send a request and never receive the response, 
+even though the server completed the operation. The client cannot safely conclude that the operation failed.
+
+Therefore, for operations such as checkout and payment initiation, I would use a stable idempotency key.
+The server would associate the key with the authenticated customer, operation, and request payload.
+
+If the same request is retried, the server returns the existing result instead of creating another operation.
+If the same key is reused with a different payload, the server rejects it.
+
+Next, I will define the main domain boundaries.
+
+The Catalog Service owns product metadata such as title, description, category, brand, and attributes.
+The Search Service owns the search representation and supports full-text queries, ranking, filtering, and facets.
+The Cart Service owns mutable customer shopping-cart state.
+The Inventory Service owns stock quantities and reservations.
+The Order Service owns order records and order-state transitions.
+The Payment Service owns payment attempts, provider references, and payment status.
+The Fulfillment Service owns shipment-related state, and the Notification Service handles customer communications.
+
+I separate Catalog and Inventory because their access patterns and correctness requirements differ. 
+Product descriptions change relatively infrequently and can be cached heavily. 
+Inventory changes more frequently and needs atomic reservation under concurrent access.
+
+I also separate Orders and Payments. An order represents the customer's commercial purchase, 
+whereas a payment represents a financial operation that can remain pending, fail, succeed, or require reconciliation.
+
+An order item should preserve a snapshot of the agreed unit price, currency, quantity, 
+and relevant product information at the time of purchase. Otherwise, changing the catalog 
+later could change how an old order is displayed or audited.
+
+My general rule is that each domain owns its authoritative data. Other services interact with that 
+data through APIs or events rather than directly modifying another service's tables.
+
+# 4. High-level architecture
+
+**Time: 11–17 minutes**
+
+Now I will draw the high-level architecture.
+
+At the entry point, we have web and mobile clients.
+
+DNS resolves the application's hostname to the appropriate network endpoint. 
+A CDN serves static assets such as product images, JavaScript, CSS, and other cacheable content.
+
+For dynamic application traffic, I would use a load balancer to distribute requests across healthy application instances.
+
+The load balancer and DNS serve different purposes. DNS resolves names and can participate in region selection, 
+whereas the load balancer distributes traffic across available instances or endpoints.
+
+Behind the load balancer, I would place an API Gateway.
+
+The gateway provides common external API capabilities, including authentication enforcement, rate limiting, request routing, API versioning, and observability.
+
+I would avoid forcing every internal service-to-service call through the public gateway. Internal communication should use appropriate service discovery, network policies, authentication, and routing without adding unnecessary hops.
+
+Behind the gateway, we have our domain services: Catalog, Search, Cart, Inventory, Checkout or Order, Payment, Fulfillment, and Notification.
+
+Now let me explain the data layer.
+
+For authoritative transactional data, I would initially use PostgreSQL. It gives us relational integrity, constraints, transactions, and mature indexing.
+
+For product metadata, PostgreSQL is a reasonable starting choice because the core entities are structured and require reliable updates. If product attributes became extremely heterogeneous or the access patterns strongly favored flexible document aggregation, I would evaluate a document database. I would not select a database simply because it is fashionable.
+
+For caching, I would use Redis to reduce repeated reads against the primary database and improve response latency.
+
+For search, I would use OpenSearch or Elasticsearch because a general-purpose relational database is not the best primary engine for large-scale full-text relevance ranking, tokenization, fuzzy matching, and faceted search.
+
+The search index would be a derived representation, not the source of truth.
+
+For asynchronous event processing, I would use Kafka where durable buffering, replay, and independent consumer processing provide a clear benefit.
+
+For images and other large objects, I would use object storage with CDN delivery.
+
+Finally, I would integrate observability across the services using metrics, structured logs, distributed traces, and alerts.
+
+The reason for these distinct components is that the workload is heterogeneous. Search, image delivery, transactional writes, and inventory reservation have different performance and consistency characteristics.
+
+I would not put all of this into separate services simply because we can. If we were building a smaller system with a smaller team, a modular monolith could be simpler and entirely appropriate. For this target scale, independently scaling domains can be valuable, but I would justify each service boundary by ownership, workload, or reliability requirements.
+
+The initial request path would be straightforward.
+
+A customer searching for a product reaches the Search Service, which queries the search index and returns ranked results.
+
+A customer opening a product page reaches the Catalog Service, which reads from Redis or the authoritative product database.
+
+A customer checking out enters the transactional workflow, which validates the cart, reserves inventory, creates an order, and coordinates payment.
+
+This separation is deliberate: the read-heavy discovery path should not become coupled to the availability of the payment provider.
+
+# 5. Product catalog, cache, and search
+
+**Time: 17–22 minutes**
+
+Let me go deeper into the catalog and search paths before discussing checkout.
+
+For a product-detail request, I would use a cache-aside strategy.
+
+The Catalog Service first checks Redis for a key such as `product:{productId}`.
+
+If the product is present, the service returns the cached representation.
+
+If it is absent, the service reads PostgreSQL, populates the cache with an appropriate time-to-live, and returns the result.
+
+Suppose the service receives 20,000 product reads per second and achieves a 95 percent cache hit rate.
+
+In that case, approximately 1,000 reads per second reach the database rather than all 20,000.
+
+This is an illustrative calculation, not a guaranteed hit rate. The actual result depends on the popularity distribution, cache size, expiration policy, and key reuse.
+
+Caching reduces latency and database load, but it introduces a freshness problem.
+
+When product data changes, I would update the authoritative database and then invalidate or refresh the cache. To make propagation more reliable, I would publish change events using a transactional outbox or a CDC pipeline. A TTL provides an additional safety net.
+
+I would also consider cache stampedes. If a popular product expires and thousands of requests miss simultaneously, they can overwhelm the database. Request coalescing, TTL jitter, background refresh, and bounded database concurrency can mitigate this.
+
+The cache must remain an optimization. If Redis fails, we should not blindly send the full traffic volume to PostgreSQL. We need database capacity protection, rate limiting, controlled degradation, and a recovery plan.
+
+Now consider search.
+
+When a seller updates a product, the Product Service writes the change to PostgreSQL. The change is propagated through an outbox or CDC into Kafka. A Search Indexer consumes the event and updates OpenSearch.
+
+This means the product database and search index are eventually consistent.
+
+That is acceptable for many discovery operations. A newly added product may take a short time to appear in search, provided the freshness objective is met.
+
+However, checkout must not trust the search index for current price or available stock. It must revalidate those values against the authoritative business systems.
+
+The search indexer also needs to handle duplicate events and out-of-order updates. I would include product versions in events and ensure an older update cannot overwrite a newer version in the index.
+
+I would monitor indexing lag, consumer failures, and the age of the oldest unprocessed event. If the index becomes corrupted or falls behind, we should have a process to replay changes or rebuild it from authoritative product data.
+
+Search can also be scaled independently. The search engine can distribute documents across shards and use replicas to improve availability and read capacity. However, distributed queries can require scatter-gather execution and merging of results, while replicas and shards increase storage and operational costs.
+
+For hot search queries, we can introduce a short-lived result cache. I would apply it selectively because personalized searches and dynamic filters can reduce cache effectiveness.
+
+The important design principle is that PostgreSQL owns product truth, Redis accelerates repeated reads, and OpenSearch serves search-specific access patterns.
+
+# 6. Checkout, inventory reservation, and payment
+
+**Time: 22–34 minutes**
+
+I will now focus on the most critical part of the design: the purchase workflow.
+
+Suppose a customer has added two products to the cart and clicks Checkout.
+
+The first step is to validate the authenticated customer, cart ownership, requested quantities, delivery address, and applicable business rules.
+
+I would revalidate the current price rather than trusting a price cached on the product page. I would then calculate the order total on the server and preserve the agreed price in the order record.
+
+The next step is inventory reservation.
+
+I do not want to simply check whether stock is available and then update it, because that creates a race condition.
+
+Imagine there is one shoe left in inventory and two customers try to buy it at the same time.
+
+A naïve implementation might read the available stock, see that it is one, and then update the reservation count. Both requests could read the same value before either writes its update. Both could conclude that they successfully acquired the last item.
+
+To prevent this, I would use an atomic conditional update in the authoritative inventory database.
+
+Conceptually, the update increments the reserved quantity only if the remaining available quantity is sufficient.
+
+The database performs the check and the update as one atomic operation. If one row is updated, the reservation succeeds. If no row is updated, the request cannot reserve that quantity.
+
+For example, the condition would be equivalent to:
+
+`on_hand - reserved >= requested_quantity`
+
+I would execute the update inside a transaction and insert the reservation record in that same transaction. A unique reservation ID would prevent retries from creating duplicate reservations.
+
+For this design, I would start with an atomic database update rather than introducing a distributed lock.
+
+Optimistic locking is useful when conflicts are relatively infrequent, but it can cause repeated retries under heavy contention. Pessimistic row locking can be appropriate for highly contested records, but it introduces lock waits and deadlock considerations.
+
+Distributed locks introduce additional complexity around leases, expiry, process pauses, and fencing. They are not my default solution when the database can enforce the required invariant atomically.
+
+Once inventory is reserved, I would create a durable order record and start the payment process.
+
+I would not hold a database transaction open while calling the payment provider. The network call can be slow, time out, or fail independently. Holding a database lock during that call would increase contention and reduce throughput.
+
+Instead, I would persist the workflow state, make the external call outside the local transaction, and then record the result through a controlled state transition.
+
+Let me discuss why inventory reservation is necessary.
+
+If we wait until payment succeeds before reserving inventory, another customer could buy the same item during the payment operation.
+
+If we reserve stock and payment fails, we temporarily hold inventory unnecessarily.
+
+A temporary reservation balances these competing concerns. It prevents concurrent customers from claiming the same available stock while allowing us to release stock when checkout does not complete.
+
+A reservation record could contain a reservation ID, order ID, SKU, warehouse, quantity, status, and expiry timestamp.
+
+The reservation begins in a reserved state. When the purchase is confirmed, it transitions to confirmed. If payment fails or checkout is safely cancelled, it transitions to released.
+
+The expiry worker must coordinate with confirmation. It cannot simply check the expiry timestamp and blindly increment the available stock. Confirmation and release need mutually exclusive, atomic state transitions so the same reservation is not processed twice.
+
+For an order containing several SKUs, we must also define how partial reservations are handled. If the business requires all items to be available, we either need a reservation strategy that can compensate for partial success or a workflow that releases already reserved items when another item cannot be acquired.
+
+Now I will address payment, because this is where distributed systems become especially difficult.
+
+Suppose the payment provider receives our request and charges the customer, but the response is lost because of a network timeout.
+
+Our application sees a timeout. It does not know whether the payment succeeded.
+
+A timeout is not proof of failure.
+
+If we immediately create a new payment attempt and send another charge request, we risk charging the customer twice.
+
+To prevent this, I would create a durable payment attempt with a stable identifier and use the payment provider's idempotency mechanism where supported.
+
+If the request times out, I would retain an unknown or pending outcome and query the provider or reconcile its status before attempting another charge.
+
+I would also handle asynchronous payment webhooks. Those webhooks must be authenticated, deduplicated, and processed safely even if they arrive more than once or out of order.
+
+The Order Service and Payment Service would each own their own state. The Payment Service owns payment status and provider references. The Order Service owns order-state transitions.
+
+I would not allow a payment callback to directly modify the order database. Instead, the payment result would be delivered through a controlled API or a durable event, and the Order Service would validate and apply the corresponding transition.
+
+For the order lifecycle, I would use explicit states rather than a single boolean.
+
+An order could begin as CREATED, move to INVENTORY_RESERVED, then PAYMENT_PENDING, and eventually CONFIRMED if payment succeeds.
+
+If payment fails, the workflow moves into a cancellation or compensation path and releases inventory when safe.
+
+Real-world systems need additional states for pending cancellation, refunds, partial fulfillment, and manual reconciliation. The state model should reflect actual business rules rather than pretending every failure can be rolled back instantly.
+
+Now, why not use one ACID transaction across inventory, orders, payments, and fulfillment?
+
+Because these operations span independently owned databases and an external payment provider. A normal database transaction cannot atomically include every one of those systems.
+
+I would use a Saga pattern.
+
+A Saga is a sequence of local transactions coordinated to achieve a larger business operation. If a later step fails, the workflow performs a compensating action where appropriate.
+
+For example, the workflow reserves inventory, creates an order, initiates payment, and confirms the purchase.
+
+If payment fails, the workflow releases the inventory and updates the order accordingly.
+
+If payment succeeds but a later business step fails, we cannot simply erase the payment. Depending on the state of fulfillment, we may need to void the payment, refund it, or route the case for reconciliation.
+
+Compensation is not the same as a database rollback. It is a new business action that restores an acceptable state.
+
+For checkout, I would prefer orchestration because the workflow has critical invariants, explicit dependencies, and recovery requirements. A workflow coordinator can record progress, apply timeouts, retry appropriate steps, and initiate compensation.
+
+For less critical downstream activities, such as notifications and analytics, event-driven choreography is appropriate because those consumers can react independently to business events.
+
+Finally, I would make the client-facing checkout asynchronous when necessary. If payment confirmation is still pending, the client can receive an order or checkout identifier and query its status rather than holding an HTTP request open indefinitely.
+
+The essential idea is that checkout is a durable workflow, not one long synchronous request.
+
+# 7. Consistency, messaging, and event reliability
+
+**Time: 34–39 minutes**
+
+I want to make the consistency model explicit.
+
+I would not use strong consistency everywhere. That would add unnecessary coordination to operations that can tolerate bounded staleness.
+
+For inventory reservations, I need atomic enforcement of the stock invariant.
+
+For payment and order state, I need durable records, valid transitions, and reconciliation.
+
+For catalog browsing and search, eventual consistency is generally acceptable, provided freshness is monitored and checkout revalidates the authoritative values.
+
+For images, CDN caching is appropriate because images do not require transactional updates for every read.
+
+Now let me explain the transactional outbox.
+
+Suppose the Product Service updates PostgreSQL successfully, but the application crashes before publishing a product-update event to Kafka.
+
+The database contains the new product, but the search index never receives the event.
+
+If we simply update the database and publish a message as two unrelated operations, we create a dual-write failure.
+
+With the outbox pattern, the Product Service writes both the product change and an outbox event in the same database transaction.
+
+If the transaction commits, both records exist. If it rolls back, neither change is committed.
+
+A separate publisher or CDC pipeline delivers the outbox event to Kafka. Publication can be retried, so the same event might be delivered more than once.
+
+That is why consumers must be idempotent.
+
+For example, a consumer can record processed event IDs and apply the associated database change in the same transaction. A unique constraint can prevent duplicate business effects.
+
+I would not claim universal exactly-once processing across the entire platform. Instead, I would design for at-least-once delivery and ensure the specific business operation is idempotent.
+
+Kafka is valuable because it separates the producer from downstream consumers, buffers bursts, supports replay, and allows consumers to scale independently.
+
+For example, an OrderConfirmed event can be consumed by Fulfillment, Notification, Seller Integration, and Analytics without requiring the checkout request to wait for all of them.
+
+However, Kafka does not replace the authoritative database transaction, the inventory reservation, or the payment provider's idempotency mechanism.
+
+I would monitor consumer lag, retry rates, dead-letter queues where appropriate, and the age of the oldest unprocessed event. I would also define replay and recovery procedures.
+
+The result is a system that tolerates transient failures without silently losing business events.
+
+# 8. Scaling, hot keys, and multi-region design
+
+**Time: 39–44 minutes**
+
+Now I will discuss how I would scale the platform as demand grows.
+
+For stateless services, I would scale horizontally behind load balancers.
+
+Suppose one service instance safely handles 1,000 requests per second under the required latency target. For a peak workload of 25,000 requests per second, the theoretical minimum would be 25 instances.
+
+I would provision additional capacity for uneven traffic, deployments, instance failures, and operational headroom. For example, an initial estimate of 30 to 35 instances might be reasonable, but load testing must validate the real capacity.
+
+I would scale Search, Catalog, Inventory, and Order processing independently because their workloads differ.
+
+For PostgreSQL, I would first optimize indexes, queries, connection pools, and transaction duration. I would then consider read replicas for appropriate read-heavy operations.
+
+However, replicas introduce replication lag. A just-written record may not immediately appear on a replica. Critical purchase decisions must not depend on a stale replica result.
+
+If one database still cannot meet the workload after appropriate optimization and scaling, I would consider partitioning or sharding.
+
+The shard key must follow the access patterns. For example, sharding orders by customer can help retrieve a customer's order history, but global reporting becomes more complicated.
+
+Inventory sharding by SKU and warehouse can distribute load, but a popular SKU may still become a hot partition.
+
+This brings me to flash sales.
+
+During a flash sale, thousands of requests may compete for the same SKU. Adding more application instances does not remove contention on one inventory record.
+
+I would use admission control and rate limiting to protect the reservation path. I would keep transactions short and use atomic stock updates. If contention becomes extreme, I would evaluate controlled stock allocation buckets or a serialized reservation path for the hottest products.
+
+Each approach has trade-offs. Queues smooth bursts but add waiting time. Allocation buckets can improve parallelism but require careful allocation and reconciliation. A single-writer path can simplify ordering but limit throughput.
+
+I would choose based on measured contention and the acceptable customer experience.
+
+For a multi-region platform, I would distribute static content globally and deploy application services close to users.
+
+For critical transactional writes, I would establish explicit ownership of authoritative inventory and order data. Active-active writes to the same inventory record across regions can oversell unless the system coordinates those writes correctly.
+
+One approach is to assign a home region to a SKU or warehouse. Another is to allocate stock between regions and enforce each region's local allocation. A more globally coordinated approach is possible, but it introduces additional latency and operational complexity.
+
+There is no free combination of unrestricted multi-region writes, globally low latency, and simple strong consistency during network partitions. The business requirements determine which trade-offs are acceptable.
+
+# 9. Failure handling, observability, and security
+
+**Time: 44–48 minutes**
+
+Before concluding, I want to explain how I would know whether the system is healthy and how it behaves when dependencies fail.
+
+If Redis becomes unavailable, I would not blindly redirect all traffic to PostgreSQL. I would protect the database through connection limits, rate limiting, load shedding, and controlled degradation.
+
+If the search index becomes unavailable, I would return a controlled error or use a limited fallback where feasible. The checkout path should remain independent of search availability.
+
+If Kafka becomes unavailable, business changes and outbox records should remain durable, and publishing should resume after recovery. I would monitor the outbox backlog and ensure database capacity can absorb the outage duration.
+
+If the payment provider times out, the workflow should preserve the unknown outcome and reconcile it rather than creating a new uncoordinated charge.
+
+If a consumer crashes after processing an event but before acknowledging it, the message may be delivered again. Idempotent processing prevents the duplicate delivery from duplicating the business effect.
+
+If the database primary fails, failover should follow a tested recovery strategy. I would validate replication lag, durability assumptions, recovery-point objectives, and recovery-time objectives rather than assuming that a replica automatically guarantees zero data loss.
+
+For observability, I would measure request rate, error rate, and latency percentiles such as p95 and p99 across the full request path.
+
+For Java 21 services, I would monitor heap usage, process RSS, allocation rate, garbage-collection pauses, thread activity, connection-pool saturation, and downstream latency. I would use JFR, JVM metrics, distributed tracing, and GC logs to diagnose bottlenecks.
+
+Virtual threads can improve the programming model for high-concurrency I/O-bound workloads, but they do not eliminate database connection limits, downstream rate limits, or the need for bounded concurrency.
+
+I would also monitor business-level metrics, not just infrastructure metrics.
+
+For example, I would track inventory reservation conflicts, expired reservations, stuck checkout workflows, payment outcomes that remain unknown, order-state transition failures, and the age of unprocessed events.
+
+These signals help distinguish a healthy server from a healthy business workflow.
+
+From a security perspective, I would authenticate customers, authorize access to each order and cart, validate all prices and quantities on the server, protect seller and customer data boundaries, and keep sensitive payment data out of application logs.
+
+I would apply rate limits, secure secret management, encryption, audit logging, and appropriate payment compliance controls.
+
+Finally, I would test failures deliberately: payment timeouts, duplicate webhooks, duplicate messages, Redis outages, database failover, inventory races, and recovery from a growing Kafka backlog.
+
+Reliability must be demonstrated through testing and recovery drills, not merely asserted in an architecture diagram.
+
+# 10. Final conclusion
+
+**Time: 48–50 minutes**
+
+To summarize, I have designed the e-commerce platform by separating the read-heavy product-discovery path from the correctness-sensitive purchase path.
+
+For discovery, I use a CDN for static content, Redis for frequently accessed product data, and OpenSearch for full-text search and filtering. PostgreSQL remains the authoritative store for transactional business data.
+
+For checkout, I use an orchestrated workflow coordinating inventory reservation, order creation, and payment. Atomic conditional updates protect inventory, while idempotency and reconciliation protect against duplicate or ambiguous payment outcomes.
+
+Because the workflow crosses independent systems, I use durable state transitions, Saga-style compensation, and explicit recovery rather than assuming a distributed ACID transaction.
+
+For reliable event propagation, I use a transactional outbox with Kafka, and I make consumers idempotent so that message redelivery does not create duplicate business effects.
+
+For scalability, I scale stateless services independently, use caching and read replicas where appropriate, and introduce partitioning or sharding only when measurements justify the additional complexity.
+
+For availability and correctness, I define explicit behavior for dependency failures and monitor both infrastructure and business-level service objectives.
+
+The central architectural principle is that I want to scale the system without compromising the invariants that make it trustworthy. I would validate the design through load testing, fault injection, latency analysis, and recovery exercises, and evolve the architecture as real workload measurements reveal the next bottleneck.
+
+That is the architecture I would propose for a large-scale e-commerce platform.
