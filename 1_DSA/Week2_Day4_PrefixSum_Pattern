@@ -284,8 +284,30 @@ Don't just code them. For each one, practice saying:
 That's the exact reasoning skill we're targeting for your L5 interview preparation.
 
 ==========================================================================================================================================================
+Longest Sub-Array with Sum K — GeeksforGeeks
 
-
+class Solution {
+    public int longestSubarray(int[] arr, int k) {
+        // code here
+        Map<Integer,Integer> map=new HashMap<>();
+        
+        map.put(0,-1);
+        
+        int mxLen=0, currentSum=0;
+        
+        for(int n=0;n<arr.length;n++){
+            
+            currentSum+=arr[n];
+            int requiredSum=currentSum-k;
+            if(map.containsKey(requiredSum)){
+                int previousIndex=map.get(requiredSum);
+                mxLen=Math.max(mxLen,n-previousIndex);
+            }
+            map.putIfAbsent(currentSum,n);
+        }
+        return mxLen;
+    }
+}
 
 ==========================================================================================================================================================
 
