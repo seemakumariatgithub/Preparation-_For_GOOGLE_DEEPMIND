@@ -1,1 +1,212 @@
++-----+------+----------------------------+----------------------------------------------+
+| No. | Icon | Category                   | Design Pattern                               |
++-----+------+----------------------------+----------------------------------------------+
+|  1  | 🏗️  | Creational                 | Singleton                                    |
+|  2  | 🏗️  | Creational                 | Factory Method                               |
+|  3  | 🏗️  | Creational                 | Abstract Factory                             |
+|  4  | 🏗️  | Creational                 | Builder                                      |
+|  5  | 🏗️  | Creational                 | Prototype                                    |
++-----+------+----------------------------+----------------------------------------------+
+
+============================================================================================================================================
+Creational                 | Singleton  
+============================================================================================================================================
+Let's study Singleton the way a senior engineer or architect should explain it in an interview: 
+
+concept → implementation → thread safety → production risks → trade-offs → interview questions.
+
+============================================================================================================================================
+The objective is not merely to write a Singleton class.
+It's to demonstrate that you understand :
+
+object lifecycle, concurrency, JVM behavior, dependency injection, and distributed systems.
+
+============================================================================================================================================
+1. What is the Singleton design pattern?
+
+Definition: 
+            Singleton is a creational design pattern that ensures a class has only one instance 
+            within a defined scope and provides a way to access that instance.
+
+
+There are two important parts:
+        1. Control instance creation so that callers cannot freely create multiple instances.
+        2. Provide a shared access point to the instance.
+
+
+       🔹 Service A       🔹 Service B       🔹 Service C
+              \                |                /
+               \               |               /
+                └──────────────┼───────────────┘
+                               ▼
+                    🔒 Singleton Instance
+                               │
+                  ✅ Same Shared Instance
+                               │
+                📌 One Instance per Defined Scope
+============================================================================================================================================
+Real-world examples
+- A configuration registry shared within one application.
+- A process-wide metrics registry.
+- A legacy application component that must have one coordinated instance.
+
+Important: 
+              A Singleton does not automatically mean one instance across multiple JVMs, 
+              containers, servers, or the entire distributed system. 
+              Its scope depends on how it is implemented and loaded.
+
+
+
+2. Why do we need Singleton?
+      Imagine three services independently creating a configuration manager.
+
+          ConfigManager a = new ConfigManager();
+          ConfigManager b = new ConfigManager();
+          ConfigManager c = new ConfigManager();
+
+Each variable may refer to a different object. 
+That can cause inconsistent in-memory state or unnecessary resource creation if the class owns shared resources.
+
+******                                                    ******
+      A Singleton attempts to centralize ownership and reuse.
+*****                                                      *****
+
+
+
+However, a senior engineer should immediately ask:
+        - Does the object actually need a single instance?
+        - Could dependency injection manage its lifecycle instead?
+        - Is the object thread-safe?
+        - What happens in tests, multiple class loaders, or a multi-instance deployment?
+        - Does shared mutable state create a concurrency problem?
+
+Singleton is a design choice, not a default rule for every service.
+============================================================================================================================================
+3. Implement Singleton in Java 21:
+
+Let's compare the implementations in the order you should learn them for a Lead/L6 interview.
+🔒 SINGLETON DESIGN PATTERN — JAVA 21
+│
+├── 1️⃣ Eager Initialization
+│      └── Instance created when the class is initialized
+│
+├── 2️⃣ Static Block Initialization
+│      └── Instance created inside a static block
+│
+├── 3️⃣ Lazy Initialization
+│      └── Instance created only when first requested
+│
+├── 4️⃣ Synchronized Method
+│      └── Thread-safe lazy initialization using synchronized
+│
+├── 5️⃣ Double-Checked Locking
+│      └── Lazy + thread-safe + reduced synchronization overhead
+│
+├── 6️⃣ Initialization-on-Demand Holder
+│      └── Lazy + thread-safe using a nested static class
+│
+├── 7️⃣ Enum Singleton ⭐
+│      └── Simple + thread-safe + serialization protection
+│
+└── 8️⃣ Dependency Injection Singleton
+       └── One shared bean per Spring ApplicationContext
+
+
++----+-------------------------------+--------+--------------+-------------------+
+| No | Implementation                | Lazy?  | Thread-Safe? | Recommended Use   |
++----+-------------------------------+--------+--------------+-------------------+
+| 1  | Eager Initialization          | No     | Yes          | Simple instances  |
+| 2  | Static Block Initialization   | No     | Yes          | Initialization    |
+| 3  | Lazy Initialization           | Yes    | No           | Avoid as-is       |
+| 4  | Synchronized Method           | Yes    | Yes          | Simple lazy       |
+| 5  | Double-Checked Locking        | Yes    | Yes          | Advanced lazy     |
+| 6  | Holder Class                  | Yes    | Yes          | Excellent default |
+| 7  | Enum Singleton                | No*    | Yes          | Robust singleton  |
+| 8  | Spring Singleton Bean         | Yes**  | Yes***       | Spring applications|
++----+-------------------------------+--------+--------------+-------------------+
+
+*   Enum instance is initialized when the enum class is initialized.
+**  A Spring bean is generally created eagerly by default; lazy creation is configurable.
+*** Spring manages bean creation safely, but thread safety of the bean's mutable state
+    is the developer's responsibility.
+
+============================================================================================================================================
+Java 21 code examples
+
+1. Eager initialization:
+                          public class Singleton {
+                              private static final Singleton INSTANCE = new Singleton();
+                          
+                              private Singleton() {}
+                          
+                              public static Singleton getInstance() {
+                                  return INSTANCE;
+                              }
+                          }
+
+2. Static block initialization:
+                              public class Singleton {
+                                  private static final Singleton INSTANCE;
+                              
+                                  static {
+                                      INSTANCE = new Singleton();
+                                  }
+                              
+                                  private Singleton() {}
+                              
+                                  public static Singleton getInstance() {
+                                      return INSTANCE;
+                                  }
+                              }
+
+3. Lazy initialization — not thread-safe:
+                            public class Singleton {
+                                private static Singleton instance;
+                            
+                                private Singleton() {}
+                            
+                                public static Singleton getInstance() {
+                                    if (instance == null) {
+                                        instance = new Singleton();
+                                    }
+                                    return instance;
+                                }
+                            }
+
+4. Synchronized method
+                      public class Singleton {
+                          private static Singleton instance;
+                      
+                          private Singleton() {}
+                      
+                          public static synchronized Singleton getInstance() {
+                              if (instance == null) {
+                                  instance = new Singleton();
+                              }
+                              return instance;
+                          }
+                      }
+============================================================================================================================================
+
+
+
+============================================================================================================================================
+
+
+
+
+============================================================================================================================================
+
+
+
+
+============================================================================================================================================
+
+
+
+
+
+============================================================================================================================================
+
+
 
