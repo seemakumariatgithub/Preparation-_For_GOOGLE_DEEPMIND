@@ -186,6 +186,294 @@ Java 21 code examples
                               return instance;
                           }
                       }
+
+5. Double-checked locking:
+                        public class Singleton {
+                            private static volatile Singleton instance;
+                        
+                            private Singleton() {}
+                        
+                            public static Singleton getInstance() {
+                                if (instance == null) {
+                                    synchronized (Singleton.class) {
+                                        if (instance == null) {
+                                            instance = new Singleton();
+                                        }
+                                    }
+                                }
+                                return instance;
+                            }
+                        }
+
+Important: 
+            volatile is essential here to ensure correct visibility and initialization behavior across threads.
+
+6. Initialization-on-demand holder ⭐
+                                    public class Singleton {
+                                        private Singleton() {}
+                                    
+                                        private static class Holder {
+                                            private static final Singleton INSTANCE = new Singleton();
+                                        }
+                                    
+                                        public static Singleton getInstance() {
+                                            return Holder.INSTANCE;
+                                        }
+                                    }
+
+7. Enum Singleton:
+                        public enum Singleton {
+                            INSTANCE;
+                        
+                            public void execute() {
+                                System.out.println("Executing...");
+                            }
+                        }
+
+
+Usage:             Singleton.INSTANCE.execute();
+
+8. Spring singleton bean:
+                        import org.springframework.stereotype.Service;
+                        
+                        @Service
+                        public class PaymentService {
+                            public void processPayment() {
+                                System.out.println("Processing payment...");
+                            }
+                        }
+
+
+By default, Spring creates one bean instance per bean definition per ApplicationContext. 
+This is a container-managed singleton, not a JVM-wide singleton
+
+============================================================================================================================================
+EXPLAINATION AND LIMITATIONS:
+
+1. LAZY INITIALIZATION:
+                        This is a useful example of what not to use in a multithreaded application.
+                        
+                        Suppose two threads execute getInstance() simultaneously:
+                                    1. Thread A checks instance == null.
+                                    2. Thread B checks instance == null.
+                                    3. Thread A creates an object.
+                                    4. Thread B creates another object.
+                        Both threads may return different instances.
+                        Verdict: Not thread-safe
+                        
+                                    This implementation is unsafe even if it appears to work in local testing.
+                                    A senior engineer must reason about possible interleavings, 
+                                                not just typical execution.
+
+2. Synchronized lazy initialization:
+
+            The synchronized method acquires the class-level monitor.
+            Only one thread at a time can execute the method.
+
+            Benefit	                                    Cost
+            Thread-safe lazy initialization	            Every call acquires the monitor
+            Straightforward to understand	            Potential contention on a frequently called accessor
+            Correct publication through synchronization	May be unnecessary overhead for a simple accessor
+            
+            This is correct, but we can avoid acquiring the monitor after the instance has been initialized.
+
+
+3.Double-checked locking:
+
+            Why are there two checks?
+                        1. The outer check avoids synchronization on the normal path after initialization.
+                        2. The inner check prevents a second thread from creating another instance after it acquires the lock.
+
+            Why is volatile essential?
+            
+            Consider this line:
+                        private static volatile AppConfig instance;
+
+
+            In the Java Memory Model, 
+                        volatile provides visibility and ordering guarantees 
+                                    for reads and writes to the field.
+                        It prevents unsafe publication caused by the problematic reordering 
+                                    that double-checked locking without volatile could permit.
+            
+            Without volatile, a thread could observe a non-null reference without 
+                        the required guarantees that the object's initialization is visible.
+
+            Property:	                                    Result:
+            Lazy initialization	                        Yes
+            Thread-safe instance creation	            Yes
+            Synchronization after initialization	Not on the fast path
+            Complexity	                                    Higher than necessary for many applications
+            Java 21 compatible	                        Yes
+
+L6 insight: 
+            Correctness comes first. 
+            Double-checked locking is valid in modern Java when implemented correctly, 
+            but it is not automatically the best implementation. 
+            Prefer simpler initialization-on-demand or enum approaches when their semantics fit.
+
+4.nitialization-on-demand holder idiom:
+
+            This is an excellent default for a lazily initialized Singleton in plain Java when you need no extra lifecycle controls.
+            Why does this work?
+                        - Loading AppConfig does not by itself initialize Holder.
+                        - The JVM initializes Holder when Holder.INSTANCE is first accessed.
+                        - Class initialization is synchronized by the JVM, so competing threads cannot initialize the holder independently.
+                        - The initialized instance is safely published.
+
+            Property:	                                    Result:
+            Lazy initialization	                        Yes
+            Thread-safe	                                    Yes
+            Explicit synchronized accessor	            Not needed
+            volatile	                                    Not needed
+            Readability	                                    Good
+            Limitation	                                    Does not by itself solve serialization, reflection, or lifecycle concerns
+
+For a conventional lazily initialized, plain-Java Singleton, this is often my preferred implementation.
+============================================================================================================================================
+4. Compare all implementations — interview revision table
+
+Approach	                        Thread-safe?	Lazy?	                        Recommendation
+Eager initialization	            ✅	            ❌	                        Good when always needed
+Unsynchronized lazy	            ❌	            ✅	                        Avoid
+Synchronized accessor	            ✅	            ✅	                        Simple and correct
+Double-checked locking + volatile	✅	            ✅	                        Valid, but more complex
+Holder idiom	            ✅	            ✅	                        ⭐ Great plain-Java default
+Enum Singleton	            ✅	            No, not at constant level            ⭐ Great when enum semantics fit
+
+
+
+============================================================================================================================================
+5. Singleton in Spring Boot — the most relevant production discussion
+
+A critical concurrency question
+            Suppose a Spring service is a singleton:
+                                                @Service
+                                                public class CustomerService {
+                                                
+                                                    private String currentCustomerId;
+                                                
+                                                    public void process(String customerId) {
+                                                        currentCustomerId = customerId;
+                                                        // Process customer
+                                                    }
+                                                }
+            
+            
+            Two requests can invoke this service concurrently. 
+            One request may overwrite currentCustomerId 
+            while the other request is processing.
+            
+            The Singleton scope itself is not the problem. 
+            Mutable request-specific instance state in a shared service is the problem.
+            
+            Prefer stateless services:
+                                    @Service
+                                    public class CustomerService {
+                                    
+                                        public void process(String customerId) {
+                                            // Keep request-specific data local
+                                            String currentCustomerId = customerId;
+                                            // Process customer
+                                        }
+                                    }
+                                    
+            
+            This is a strong interview point: 
+                        Spring singleton beans are shared objects, 
+                                    so their design must account for concurrent requests.
+
+
+============================================================================================================================================
+Icon	Concern	            Problem	                                    Solution
+🌐	Distributed systems	One instance per JVM, not per cluster	Distributed coordination if needed
+🔄	Thread safety	Threads may modify shared data simultaneously	Statelessness, immutability, synchronization
+🧪	Testing	            State may leak between tests	            Dependency injection, isolated tests
+♻️	Lifecycle	            Resources need proper cleanup	            Lifecycle management
+🚦	Resources	            Too many connections or tasks	            Pooling, bounded concurrency
+🛡️	Availability	Instance disappears when its process stops	Recovery and redundancy
+🧩	Extensibility	Tight coupling to a concrete class	            Interfaces and dependency injection
+
+🔒 SINGLETON — WHAT CAN GO WRONG?
+│
+├── 🌐 1. Distributed Systems
+│      ❌ One instance per JVM ≠ one instance across all servers.
+│      ✅ Use distributed coordination only when required.
+│
+├── 🔄 2. Shared Mutable State
+│      ❌ Multiple threads can modify the same data concurrently.
+│      ✅ Prefer stateless services, immutable objects, or synchronization.
+│
+├── 🧪 3. Testing
+│      ❌ Global state can leak from one test into another.
+│      ✅ Use dependency injection and isolate test data.
+│
+├── ♻️ 4. Lifecycle
+│      ❌ Creating an instance does not manage all its resources.
+│      ✅ Manage initialization, cleanup, and resource ownership.
+│
+├── 🚦 5. Resource Exhaustion
+│      ❌ One instance can still create too many connections or tasks.
+│      ✅ Use connection pools, bounded concurrency, and backpressure.
+│
+├── 🛡️ 6. Availability
+│      ❌ If the process stops, its Singleton instance disappears.
+│      ✅ Design for restart, recovery, and redundancy.
+│
+└── 🧩 7. Extensibility
+       ❌ Hard-coded Singleton access tightly couples the code.
+       ✅ Use interfaces and dependency injection where appropriate.
+
+
+============================================================================================================================================
+mportant distributed-systems distinction
+Imagine your Spring Boot application runs in four Kubernetes pods.
+- Each pod has its own JVM.
+- Each JVM can have its own Spring application context.
+- A singleton-scoped bean normally exists separately in each context.
+Therefore, you can have four instances of the same service across four pods.
+
+If the actual requirement is "only one scheduler may execute a job across all pods," 
+a Java Singleton will not satisfy it. You need an appropriate distributed coordination mechanism, 
+such as a database-backed lease or a distributed lock, designed with failure handling and lease expiry in mind.
+
+Do not introduce distributed locks merely because a service is singleton-scoped. 
+First establish the business invariant that must hold across nodes.
+
+============================================================================================================================================
+7. Google DeepMind L6 / Amazon Lead — how to explain your choice
+
+A polished answer should cover the decision, the Java guarantee, and the production limitation.
+Sample interview answer · approximately 60–90 seconds
+
+            “Singleton is a creational design pattern that controls object creation so that one instance is shared within a defined scope.
+            
+            In plain Java, I would consider the initialization-on-demand holder idiom for lazy initialization because 
+            JVM class initialization gives me thread-safe initialization without adding 
+            synchronization to the accessor. If I need robust enum semantics, 
+            including built-in serialization guarantees, I would consider an enum Singleton.
+            
+            In a Spring Boot application, I would normally rely on Spring's singleton 
+            bean scope rather than introduce a separate static Singleton. 
+            I would keep service beans stateless or otherwise thread-safe 
+            because the same bean may handle concurrent requests.
+            
+            From a distributed-systems perspective, 
+                        I would also make the scope explicit: 
+                                    a JVM-local Singleton does not guarantee a single instance across multiple pods. 
+            If the business requirement requires cross-node coordination, 
+            I would choose a distributed coordination mechanism rather than relying on this pattern.
+            
+            Ultimately, I would choose the simplest implementation 
+                        that satisfies the lifecycle, concurrency, and scope requirements.”
+
+
+
+============================================================================================================================================
+
+
+
+
 ============================================================================================================================================
 
 
@@ -194,7 +482,6 @@ Java 21 code examples
 
 
 
-
 ============================================================================================================================================
 
 
@@ -203,6 +490,34 @@ Java 21 code examples
 ============================================================================================================================================
 
 
+============================================================================================================================================
+
+
+
+============================================================================================================================================
+
+
+
+============================================================================================================================================
+
+
+
+============================================================================================================================================
+
+
+
+============================================================================================================================================
+
+
+============================================================================================================================================
+
+
+
+============================================================================================================================================
+
+
+
+============================================================================================================================================
 
 
 
