@@ -34,19 +34,227 @@ Interview context: Java 21 · Senior Backend Engineer · Design patterns and arc
 
 
 ===============================================================================================================================================
+0:40–1:20 — Real project scenario
+
+            Imagine an insurance platform that generates policy documents for different insurance products.
+
+                  Motor insurance:                  
+                        Generates a motor policy document with vehicle details, coverage, and premium information.
+                  
+                  Health insurance:                  
+                        Generates a health policy document with insured members, benefits, exclusions, and coverage details.
+                  
+                  Travel insurance:                  
+                        Generates a travel policy document with trip dates, destination, and emergency coverage.
+
+
+            Initially, a single service might contain conditional logic 
+            to instantiate the appropriate document generator based on the insurance product type.
+            
+            As the platform grows, this conditional logic can become difficult to maintain, 
+                  particularly when each product requires different generation behavior.
+            
+            However, the overall workflow is consistent: validate the request, 
+            create the appropriate generator, generate the document, and record the result.
+            
+            This is where Factory Method can be useful. It allows the common workflow 
+            to remain in a base Creator while concrete Creators determine which document generator to instantiate.
 
 ===============================================================================================================================================
+1:20–2:50 — Java 21 implementation:
+
+            Step 1: Define the Product interface:
+
+                              public interface PolicyDocumentGenerator {
+                                  byte[] generate(PolicyData policy);
+                              }
+
+            This is the Product abstraction. Every concrete generator must implement the same contract.
+
+            Step 2: Create concrete Products:
+
+                              public class MotorPolicyGenerator
+                                      implements PolicyDocumentGenerator {
+                              
+                                  @Override
+                                  public byte[] generate(PolicyData policy) {
+                                      // Generate motor policy content
+                                      return new byte[0];
+                                  }
+                              }
+
+                              public class HealthPolicyGenerator
+                                      implements PolicyDocumentGenerator {
+                              
+                                  @Override
+                                  public byte[] generate(PolicyData policy) {
+                                      // Generate health policy content
+                                      return new byte[0];
+                                  }
+                              }
+
+                  TravelPolicyGenerator could implement the same interface for travel policies.
+                  
+                  The empty byte arrays are placeholders to keep this example focused on the design pattern, 
+                        not the document-generation implementation.
+                  
+                  Step 3: Define the abstract Creator
+                                    public abstract class PolicyDocumentCreator {
+                                    
+                                        protected abstract PolicyDocumentGenerator
+                                                createGenerator();
+                                    
+                                        public byte[] generatePolicyDocument(PolicyData policy) {
+                                    
+                                            validate(policy);                                    
+                                            PolicyDocumentGenerator generator = createGenerator();                                    
+                                            byte[] document = generator.generate(policy);                                    
+                                            recordGeneration(policy);                                    
+                                            return document;
+                                        }
+                                    
+                                        protected void validate(PolicyData policy) {
+                                            // Common validation
+                                        }
+                                    
+                                        protected void recordGeneration(PolicyData policy) {
+                                            // Common audit or status recording
+                                        }
+                                    }
+                  Step 4: Implement concrete Creators:
+
+                                          public class MotorPolicyCreator
+                                                  extends PolicyDocumentCreator {
+                                          
+                                              @Override
+                                              protected PolicyDocumentGenerator createGenerator() {
+                                                  return new MotorPolicyGenerator();
+                                              }
+                                          }
+
+                                          public class HealthPolicyCreator
+                                                  extends PolicyDocumentCreator {
+                                          
+                                              @Override
+                                              protected PolicyDocumentGenerator createGenerator() {
+                                                  return new HealthPolicyGenerator();
+                                              }
+                                          }
+
+                  Each concrete Creator decides which Product to instantiate. The base workflow doesn't need to know the concrete class.
+
+                  Step 5: Understand the runtime flow:
+                              
+                              🏭 FACTORY METHOD DESIGN PATTERN
+                                 RUNTIME FLOW — MOTOR POLICY EXAMPLE
+                              
+                              1️⃣ CLIENT
+                                 |
+                                 | Requests a motor policy document
+                                 ↓
+                              2️⃣ CONCRETE CREATOR
+                                 MotorPolicyCreator
+                                 |
+                                 | Inherits the workflow from
+                                 | DocumentCreator
+                                 |
+                                 | Overrides createGenerator()
+                                 ↓
+                              3️⃣ FACTORY METHOD
+                                 createGenerator()
+                                 |
+                                 | Returns a MotorPolicyGenerator
+                                 | instead of creating the product
+                                 | directly inside the client
+                                 ↓
+                              4️⃣ CONCRETE PRODUCT
+                                 MotorPolicyGenerator
+                                 |
+                                 | Implements DocumentGenerator
+                                 |
+                                 | Generates the motor policy document
+                                 ↓
+                              5️⃣ FINAL PRODUCT
+                                 Motor Policy Document
+
+                              The important point is that the client invokes the Creator's business operation,
+                              while the concrete Creator determines the Product. This is polymorphic object creation, 
+                              not simply moving a new statement into a separate class.
+
+==========================================================================:=====================================================================
+3:40–4:30 — Benefits, trade-offs, and production considerations
+⏱️ 3:40–4:30 — BENEFITS, TRADE-OFFS & PRODUCTION CONSIDERATIONS
+
+AREA: 🔗 LOOSE COUPLING
+Senior-engineer perspective:
+Business workflow depends on the Product interface,
+not on a specific implementation.
+
+--------------------------------------------------
+
+AREA: ➕ EXTENSIBILITY
+Senior-engineer perspective:
+New products can be introduced through new Concrete
+Creators when they follow the existing contract.
+
+--------------------------------------------------
+
+AREA: 🛠️ MAINTAINABILITY
+Senior-engineer perspective:
+The shared workflow stays in one place instead of
+being duplicated across multiple implementations.
+
+--------------------------------------------------
+
+AREA: ⚖️ COMPLEXITY
+Senior-engineer perspective:
+The pattern introduces additional classes and
+an inheritance hierarchy.
+
+--------------------------------------------------
+
+AREA: ♻️ OBJECT LIFECYCLE
+Senior-engineer perspective:
+The pattern alone does not provide dependency
+injection, lifecycle management, or resource pooling.
+
+--------------------------------------------------
+
+AREA: 🌐 DISTRIBUTED SYSTEMS
+Senior-engineer perspective:
+The pattern does not provide distributed coordination,
+retries, idempotency, or delivery guarantees.
+===============================================================================================================================================
+From a production perspective, :
+            I would also evaluate whether inheritance is the right extension mechanism.
+            
+            In a Spring Boot application, I might inject configured generator implementations into a 
+            registry instead of constructing them directly with `new`. 
+            This allows Spring to manage dependencies, configuration, and lifecycle.
+            
+            I would also ensure that the Product interface represents a stable business capability, 
+            and that provider-specific concerns such as timeouts, observability, error handling,
+            and retries are addressed at the appropriate architectural layer.
+            
+            The Factory Method pattern solves a specific problem: varying object creation while preserving a common creation workflow. It should not be treated as a complete application architecture.
+
 
 
 ===============================================================================================================================================
+To summarize,
+            Factory Method is useful when a common workflow must remain 
+            stable while subclasses control which concrete Product gets created.
 
+            Its core participants are the Product interface, Concrete Products, 
+            the Creator, and Concrete Creators. The key mechanism is runtime polymorphism through an overridable factory method.
 
+            For senior-level design, I would also distinguish Factory Method from a Simple Factory,
+            which typically centralizes selection in a method or class, and from Dependency Injection, 
+            which supplies dependencies from outside the consuming object.
 
-===============================================================================================================================================
-
-
-
-===============================================================================================================================================
+            My final design decision would depend on whether creation genuinely varies by Creator, 
+            whether a shared workflow exists, and whether the benefits justify the additional abstraction. 
+            I would prefer the simplest design that supports the expected evolution of the system.
 
 
 
