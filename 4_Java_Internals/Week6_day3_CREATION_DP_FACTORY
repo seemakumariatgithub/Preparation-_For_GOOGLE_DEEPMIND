@@ -9,6 +9,11 @@ extensibility, Java implementation, and production trade-offs.
 
 Factory Method Design Pattern — 5-minute presentation
 Interview context: Java 21 · Senior Backend Engineer · Design patterns and architecture
+
+
+Remember the flow:
+
+                  Client → Concrete Creator → Factory Method → Concrete Product → Product Interface
 ===============================================================================================================================================
 0:00–0:40 — Introduction and intent
 
