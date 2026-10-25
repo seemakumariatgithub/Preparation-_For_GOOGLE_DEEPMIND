@@ -1,1 +1,78 @@
 
+Here is a complete, interview-ready 5-minute presentation 
+on the GoF Factory Method Design Pattern, 
+suitable for a Google DeepMind L5 interview with 9+ years of Java experience.
+
+I’ll use a real-world insurance policy document generation system rather than the payment example. 
+This lets you explain the pattern through a realistic backend workflow, 
+extensibility, Java implementation, and production trade-offs.
+
+Factory Method Design Pattern — 5-minute presentation
+Interview context: Java 21 · Senior Backend Engineer · Design patterns and architecture
+===============================================================================================================================================
+0:00–0:40 — Introduction and intent
+
+      The Factory Method is a creational design pattern defined by the Gang of Four, or GoF.
+      
+      Its primary intent is :
+              to define a method for creating an object in a base Creator class, 
+              while allowing subclasses to decide which concrete Product implementation should be instantiated.
+      
+      The key idea is to separate:
+            the decision about which object to create 
+            from the business workflow that uses that object.
+      
+      I would consider this pattern: 
+            when a backend system supports multiple implementations of a capability, 
+            and the object-creation logic varies across different workflows, 
+              while the overall business process remains largely the same.
+      
+      The pattern promotes:
+            programming to an abstraction,   
+            reduces direct coupling to concrete implementations, 
+            and provides an extension point through polymorphism.
+
+
+===============================================================================================================================================
+
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+
+===============================================================================================================================================
+
+
+===============================================================================================================================================
+
+
