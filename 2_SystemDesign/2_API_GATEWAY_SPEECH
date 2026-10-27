@@ -163,9 +163,42 @@ For example, a valid user token does not mean the user is allowed to read anothe
 
 
 ================================================================================================================================================
+1.3 Non-functional requirements
+    These are the qualities that make this a senior-level design problem.
+        - Availability: A gateway failure must not take the entire platform offline unnecessarily.
+        - Low latency: Gateway processing should consume only a controlled part of the end-to-end latency budget.
+        - Horizontal scalability: Capacity should grow by adding gateway instances.
+        - Security: Backend services should not be directly exposed unintentionally.
+        - Resilience: A slow Payment Service should not consume all gateway resources.
+        - Operability: Engineers should be able to identify which route or downstream dependency is failing.
+        - Maintainability: Routing and security policy changes should not require rewriting the entire gateway.
 
+📘 1.3 NON-FUNCTIONAL REQUIREMENTS — API GATEWAY HLD
 
-
++----+--------------------------------+--------------------------------------+--------------------------------------+
+| No | 🔹 Requirement                  | ⚙️ Expected Quality                  | 💡 Example                            |
++----+--------------------------------+--------------------------------------+--------------------------------------+
+| 01 | 🟢 Availability                 | Gateway failure must not take the    | Multiple gateway instances keep      |
+|    |                                | entire platform offline              | traffic flowing if one instance fails|
++----+--------------------------------+--------------------------------------+--------------------------------------+
+| 02 | ⚡ Low Latency                  | Gateway processing must consume     | Authentication and routing add       |
+|    |                                | only a controlled latency budget     | minimal processing overhead          |
++----+--------------------------------+--------------------------------------+--------------------------------------+
+| 03 | 📈 Horizontal Scalability       | Capacity should grow by adding       | Add more gateway instances when      |
+|    |                                | gateway instances                    | request traffic increases            |
++----+--------------------------------+--------------------------------------+--------------------------------------+
+| 04 | 🔐 Security                     | Backend services must not be        | Allow external clients to access     |
+|    |                                | unintentionally exposed directly    | services through approved routes    |
++----+--------------------------------+--------------------------------------+--------------------------------------+
+| 05 | 🧯 Resilience                   | Slow downstream services must not   | Payment Service timeout prevents     |
+|    |                                | exhaust all gateway resources        | requests waiting indefinitely        |
++----+--------------------------------+--------------------------------------+--------------------------------------+
+| 06 | 📊 Operability                  | Engineers must quickly identify     | Trace route errors and identify     |
+|    |                                | failing routes and dependencies     | a failing Payment Service            |
++----+--------------------------------+--------------------------------------+--------------------------------------+
+| 07 | 🛠️ Maintainability              | Routing and security policies must  | Update route configuration without  |
+|    |                                | be easy to change                   | rewriting the entire gateway        |
++----+--------------------------------+--------------------------------------+--------------------------------------+
 
 ================================================================================================================================================
 
