@@ -287,22 +287,124 @@ Health signals are imperfect and may lag behind failures.
 
 
 =====================================================================================================================================
+Slide 9 — authentication and authorization
+        A secure request path typically includes:
+        - TLS for transport protection.
+        - Authentication using a validated session, API credential, or token.
+        - Authorization policy checks at the appropriate boundary.
+        - Strict upstream identity propagation.
+        - Request-size limits and input validation.
+        - Protection against spoofed forwarding headers and untrusted identity headers.
 
+A gateway can validate a signed JWT locally when it has the required trusted key material and validation policy. 
+This avoids a remote identity-provider call for every request.
+However, local validation introduces key-rotation and revocation considerations.
 
+For sensitive operations, the backend service must still enforce 
+domain-specific authorization and business invariants. 
+
+For example, a gateway's acceptance of a token must not automatically authorize the user to access every order ID.
+
+🔐 AUTHENTICATION STRATEGIES — API GATEWAY HLD
+
+Authentication Strategy: Local JWT Validation
+✅ Benefit: Low request-path latency
+⚠️ Trade-off: Token revocation may not be immediate
+
+Authentication Strategy: Introspection Against an Identity Service
+✅ Benefit: Centralized token-status checks
+⚠️ Trade-off: Additional network dependency and latency
+
+Authentication Strategy: API Keys
+✅ Benefit: Simple client identification
+⚠️ Trade-off: Weak identity assurance if used alone
+
+Authentication Strategy: Mutual TLS (mTLS)
+✅ Benefit: Strong client or workload identity at the transport level
+⚠️ Trade-off: Certificate lifecycle management and client compatibility
 
 
 =====================================================================================================================================
+Slide 10 — rate limiting and overload protection
+Rate limiting controls how much traffic a client or tenant may send. 
+Overload protection controls whether the gateway or service has capacity to accept additional work.
 
 
+📘 RATE-LIMITING AND TRAFFIC-CONTROL STRATEGIES
 
+🔹 Strategy: Fixed Window
+⚙️ Mechanism: Counts requests within a fixed time interval.
+⚠️ Trade-off: Allows boundary bursts when requests accumulate
+               at the end of one window and the start of the next.
+
+🔹 Strategy: Sliding Window
+⚙️ Mechanism: Tracks request traffic across a moving time interval.
+⚠️ Trade-off: Higher state or computation cost.
+
+🔹 Strategy: Token Bucket
+⚙️ Mechanism: Tokens replenish at a defined rate. Requests consume
+               available tokens, allowing controlled bursts.
+⚠️ Trade-off: Permits bounded bursts, so instantaneous traffic can
+               exceed the average configured rate.
+
+🔹 Strategy: Leaky Bucket
+⚙️ Mechanism: Smooths outgoing traffic toward a configured rate.
+⚠️ Trade-off: May delay or reject bursts, depending on the
+               implementation and queue capacity.
+
+🔹 Strategy: Concurrency Limiting
+⚙️ Mechanism: Caps the number of simultaneous in-flight requests.
+⚠️ Trade-off: Requires correctly configured limits and awareness
+               of workload duration and resource consumption.
+These are related, but they are not identical.
+
+
+Recommended design: Use local protection for fast overload rejection, 
+combined with shared or partitioned quota enforcement when tenant-wide 
+fairness requires it. Define behavior for limiter-store failure explicitly.
 
 =====================================================================================================================================
+Slide 11 — retries, timeouts, circuit breakers and bulkheads
+These patterns address different failure modes and should not be treated as interchangeable.
 
+📘 RESILIENCE MECHANISMS — API GATEWAY HLD
 
+🔹 MECHANISM: Timeout / Deadline
+🎯 Primary Purpose: Bound how long work may consume resources.
+⚠️ Common Mistake: Allowing every downstream call a fresh,
+                    excessive timeout.
 
+🔹 MECHANISM: Retry
+🎯 Primary Purpose: Recover from transient failures.
+⚠️ Common Mistake: Retrying non-idempotent operations without
+                    safeguards.
+
+🔹 MECHANISM: Circuit Breaker
+🎯 Primary Purpose: Stop repeatedly calling an unhealthy dependency.
+⚠️ Common Mistake: Treating it as a substitute for timeouts.
+
+🔹 MECHANISM: Bulkhead
+🎯 Primary Purpose: Isolate resource consumption.
+⚠️ Common Mistake: Sharing one saturated resource pool across
+                    unrelated workloads.
+
+🔹 MECHANISM: Concurrency Limit
+🎯 Primary Purpose: Bound simultaneous work.
+⚠️ Common Mistake: Choosing a limit without measuring service capacity.
+
+🔹 MECHANISM: Load Shedding
+🎯 Primary Purpose: Reject excess work before overload becomes systemic.
+⚠️ Common Mistake: Returning success when work was actually discarded.
 
 =====================================================================================================================================
+6. Slides 12–14 — performance, availability and capacity
+Slide 12 — latency budget
+The end-to-end latency of a request can be represented as:
+                        T_total = T_edge + T_gateway + T_network + T_service + T_return
 
+The components are not necessarily independent, and observed tail latency may be dominated by queueing, contention, or a slow dependency.
+
+A hypothetical latency budget might be:
 
 
 
