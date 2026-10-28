@@ -1,1 +1,152 @@
+1. What problem does Prototype solve?
+      Imagine you're building an insurance platform. 
+      A customer requests a new policy based on an existing policy template containing dozens of configuration values.
+      
+      You could create a new object and manually copy every field. 
+      But this approach creates repetitive code and risks missing fields whenever the model evolves.
+      
+      The Prototype Pattern creates a new object by copying an existing object, 
+      called the prototype, instead of constructing the new object entirely from scratch.
+
+
+==================================================================================================================================================================
+The key idea is copy an existing object's state rather than repeat its construction logic.
+
+=====================================================================================================================================================
+2. Implement Prototype in Java 21:
+
+Let's use an insurance policy template as our example.
+Step 1 — Create the prototype class
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+public final class InsurancePolicyTemplate {
+
+    private final String policyType;
+    private final BigDecimal basePremium;
+    private final List<String> addOnCoverCodes;
+
+    public InsurancePolicyTemplate(
+            String policyType,
+            BigDecimal basePremium,
+            List<String> addOnCoverCodes) {
+
+        this.policyType = Objects.requireNonNull(policyType);
+        this.basePremium = Objects.requireNonNull(basePremium);
+        this.addOnCoverCodes = new ArrayList<>(
+                Objects.requireNonNull(addOnCoverCodes));
+    }
+
+    // Copy constructor
+    public InsurancePolicyTemplate(
+            InsurancePolicyTemplate source) {
+
+        this(
+                source.policyType,
+                source.basePremium,
+                source.addOnCoverCodes
+        );
+    }
+
+    public InsurancePolicyTemplate copy() {
+        return new InsurancePolicyTemplate(this);
+    }
+
+    public String getPolicyType() {
+        return policyType;
+    }
+
+    public BigDecimal getBasePremium() {
+        return basePremium;
+    }
+
+    public List<String> getAddOnCoverCodes() {
+        return List.copyOf(addOnCoverCodes);
+    }
+}
+
+=====================================================================================================================================================
+Notice three important design decisions:
+      - The copy constructor reuses the existing object's configuration.
+      - The list is copied, so the new object doesn't share the same mutable list.
+      - The class is final, and its fields are final, preventing subclasses from 
+          changing the copying behavior and preventing reassignment of those fields.
+
+The copy method creates a new object; it does not return the original instance
+
+
+
+=====================================================================================================================================================
+Step 2 — Create and copy the prototype
+
+import java.math.BigDecimal;
+import java.util.List;
+
+public class PrototypeDemo {
+
+    public static void main(String[] args) {
+
+        // Create the prototype once
+        InsurancePolicyTemplate motorTemplate =
+                new InsurancePolicyTemplate(
+                        "MOTOR",
+                        new BigDecimal("12000.00"),
+                        List.of("ZERO_DEP", "ROADSIDE_ASSISTANCE")
+                );
+
+        // Create two independent copies
+        InsurancePolicyTemplate customerA =
+                motorTemplate.copy();
+
+        InsurancePolicyTemplate customerB =
+                motorTemplate.copy();
+
+        System.out.println(customerA.getPolicyType());
+        System.out.println(customerB.getBasePremium());
+
+        System.out.println(customerA != motorTemplate); // true
+        System.out.println(customerB != motorTemplate); // true
+        System.out.println(customerA != customerB);     // true
+    }
+}
+
+Both copies begin with the same configuration, but each is a separate object.
+
+In this example, the class is immutable from the caller's perspective, 
+so the copies can safely share immutable values such as String and BigDecimal. 
+The add-on list is independently copied.
+
+Production consideration: 
+          This example demonstrates copying configuration. 
+          A real customer policy would normally need its own customer ID, policy number, 
+          effective dates, and other identity-specific fields. 
+
+          Do not blindly copy identifiers or financial state from an existing customer policy.
+
+=====================================================================================================================================================
+3. Shallow copy vs deep copy
+This distinction is especially important at L6 level.
+
+
+=====================================================================================================================================================
+
+
+
+=====================================================================================================================================================
+
+
+
+=====================================================================================================================================================
+
+
+
+=====================================================================================================================================================
+
+
+
+=====================================================================================================================================================
+
 
