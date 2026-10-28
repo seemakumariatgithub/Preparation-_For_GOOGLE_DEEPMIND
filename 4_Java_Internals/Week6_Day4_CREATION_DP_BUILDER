@@ -1,1 +1,440 @@
+import java.util.Objects;
 
+public final class InsurancePolicy {
+
+    private final String customerId;
+    private final String policyType;
+    private final String nominee;
+    private final boolean roadsideAssistance;
+    private final double discountPercentage;
+
+    private InsurancePolicy(Builder builder) {
+        this.customerId = builder.customerId;
+        this.policyType = builder.policyType;
+        this.nominee = builder.nominee;
+        this.roadsideAssistance = builder.roadsideAssistance;
+        this.discountPercentage = builder.discountPercentage;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static final class Builder {
+        private String customerId;
+        private String policyType;
+        private String nominee;
+        private boolean roadsideAssistance;
+        private double discountPercentage;
+
+        public Builder customerId(String customerId) {
+            this.customerId = customerId;
+            return this;
+        }
+
+        public Builder policyType(String policyType) {
+            this.policyType = policyType;
+            return this;
+        }
+
+        public Builder nominee(String nominee) {
+            this.nominee = nominee;
+            return this;
+        }
+
+        public Builder roadsideAssistance(boolean enabled) {
+            this.roadsideAssistance = enabled;
+            return this;
+        }
+
+        public Builder discountPercentage(double discount) {
+            this.discountPercentage = discount;
+            return this;
+        }
+
+        public InsurancePolicy build() {
+            Objects.requireNonNull(customerId, "customerId");
+            Objects.requireNonNull(policyType, "policyType");
+
+            if (discountPercentage < 0
+                    || discountPercentage > 100) {
+                throw new IllegalArgumentException(
+                    "Discount must be between 0 and 100");
+            }
+
+            return new InsurancePolicy(this);
+        }
+    }
+}
+
+
+============================================================================================================================================
+RECORD + BUILDER
+
+
+import java.util.Objects;
+
+enum PolicyType {
+    MOTOR, HEALTH, TRAVEL
+}
+
+public record InsurancePolicy(
+        String customerId,
+        PolicyType policyType,
+        String nominee,
+        boolean roadsideAssistance,
+        double discountPercentage
+) {
+    public InsurancePolicy {
+        Objects.requireNonNull(customerId, "customerId");
+        Objects.requireNonNull(policyType, "policyType");
+
+        if (customerId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Customer ID cannot be blank");
+        }
+
+        if (discountPercentage < 0 || discountPercentage > 100) {
+            throw new IllegalArgumentException(
+                    "Discount must be between 0 and 100");
+        }
+
+        if (policyType == PolicyType.HEALTH
+                && roadsideAssistance) {
+            throw new IllegalArgumentException(
+                    "Roadside assistance is only valid for motor policies");
+        }
+    }
+}
+
+==========
+
+ADD buiulder 
+public record InsurancePolicy(
+        String customerId,
+        PolicyType policyType,
+        String nominee,
+        boolean roadsideAssistance,
+        double discountPercentage
+) {
+    public InsurancePolicy {
+        Objects.requireNonNull(customerId, "customerId");
+        Objects.requireNonNull(policyType, "policyType");
+
+        if (customerId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Customer ID cannot be blank");
+        }
+
+        if (discountPercentage < 0 || discountPercentage > 100) {
+            throw new IllegalArgumentException(
+                    "Discount must be between 0 and 100");
+        }
+
+        if (policyType == PolicyType.HEALTH
+                && roadsideAssistance) {
+            throw new IllegalArgumentException(
+                    "Roadside assistance is only valid for motor policies");
+        }
+    }
+
+    public static Builder builder(
+            String customerId,
+            PolicyType policyType) {
+        return new Builder(customerId, policyType);
+    }
+
+    public static final class Builder {
+        private final String customerId;
+        private final PolicyType policyType;
+
+        private String nominee;
+        private boolean roadsideAssistance;
+        private double discountPercentage;
+
+        private Builder(String customerId, PolicyType policyType) {
+            this.customerId = customerId;
+            this.policyType = policyType;
+        }
+
+        public Builder nominee(String nominee) {
+            this.nominee = nominee;
+            return this;
+        }
+
+        public Builder roadsideAssistance(boolean enabled) {
+            this.roadsideAssistance = enabled;
+            return this;
+        }
+
+        public Builder discountPercentage(double discount) {
+            this.discountPercentage = discount;
+            return this;
+        }
+
+        public InsurancePolicy build() {
+            return new InsurancePolicy(
+                    customerId,
+                    policyType,
+                    nominee,
+                    roadsideAssistance,
+                    discountPercentage
+            );
+        }
+    }
+}
+
+
+
+=============================
+
+RECORD + BUILDER ( using LOMBOK) + field validation
+
+import lombok.Builder;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Objects;
+
+enum PolicyType {
+    MOTOR, HEALTH, TRAVEL
+}
+
+enum PaymentFrequency {
+    MONTHLY, QUARTERLY, ANNUALLY
+}
+
+enum PaymentMethod {
+    CARD, BANK_TRANSFER, UPI
+}
+
+enum CommunicationPreference {
+    EMAIL, SMS, PHONE
+}
+
+@Builder(builderMethodName = "")
+public record InsurancePolicy(
+
+        // 5 mandatory fields
+        String customerId,
+        String policyNumber,
+        String policyHolderName,
+        LocalDate effectiveDate,
+        PolicyType policyType,
+
+        // 15 optional fields
+        String nomineeName,
+        String nomineeRelationship,
+        List<String> addOnCoverCodes,
+        BigDecimal discountPercentage,
+        PaymentFrequency paymentFrequency,
+        Boolean autoRenewal,
+        String brokerCode,
+        String campaignCode,
+        PaymentMethod paymentMethod,
+        Boolean premiumFinancing,
+        CommunicationPreference communicationPreference,
+        String email,
+        String phone,
+        String mailingAddress,
+        String notes,
+
+        // 5 fields dependent on policy type
+        String vehicleRegistrationNumber,
+        BigDecimal vehicleValue,
+        String medicalDeclaration,
+        Boolean preExistingConditionDeclared,
+        String destinationCountry
+
+) {
+
+    // Compact constructor: final validation before object creation
+    public InsurancePolicy {
+        Objects.requireNonNull(customerId, "customerId");
+        Objects.requireNonNull(policyNumber, "policyNumber");
+        Objects.requireNonNull(policyHolderName, "policyHolderName");
+        Objects.requireNonNull(effectiveDate, "effectiveDate");
+        Objects.requireNonNull(policyType, "policyType");
+
+        if (customerId.isBlank()
+                || policyNumber.isBlank()
+                || policyHolderName.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Mandatory text fields cannot be blank");
+        }
+
+        if (discountPercentage != null
+                && (discountPercentage.compareTo(BigDecimal.ZERO) < 0
+                || discountPercentage.compareTo(
+                        new BigDecimal("100")) > 0)) {
+            throw new IllegalArgumentException(
+                    "Discount must be between 0 and 100");
+        }
+
+        // Defensive copy: prevent external modification of the list.
+        addOnCoverCodes = addOnCoverCodes == null
+                ? List.of()
+                : List.copyOf(addOnCoverCodes);
+
+        validatePolicyType(
+                policyType,
+                vehicleRegistrationNumber,
+                vehicleValue,
+                medicalDeclaration,
+                preExistingConditionDeclared,
+                destinationCountry
+        );
+    }
+
+    /*
+     * Lombok generates InsurancePolicyBuilder and its fluent methods.
+     * We suppress its zero-argument builder() method and define our own
+     * entry point that requires the five mandatory values.
+     */
+    public static InsurancePolicyBuilder builder(
+            String customerId,
+            String policyNumber,
+            String policyHolderName,
+            LocalDate effectiveDate,
+            PolicyType policyType
+    ) {
+        return new InsurancePolicyBuilder()
+                .customerId(customerId)
+                .policyNumber(policyNumber)
+                .policyHolderName(policyHolderName)
+                .effectiveDate(effectiveDate)
+                .policyType(policyType);
+    }
+
+    private static void validatePolicyType(
+            PolicyType type,
+            String vehicleRegistrationNumber,
+            BigDecimal vehicleValue,
+            String medicalDeclaration,
+            Boolean preExistingConditionDeclared,
+            String destinationCountry
+    ) {
+        switch (type) {
+            case MOTOR -> {
+                requireText(
+                        vehicleRegistrationNumber,
+                        "Vehicle registration number");
+                Objects.requireNonNull(
+                        vehicleValue, "Vehicle value");
+
+                if (vehicleValue.compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new IllegalArgumentException(
+                            "Vehicle value must be positive");
+                }
+
+                rejectPresent(medicalDeclaration,
+                        "Medical declaration");
+                rejectPresent(preExistingConditionDeclared,
+                        "Pre-existing-condition declaration");
+                rejectPresent(destinationCountry,
+                        "Destination country");
+            }
+
+            case HEALTH -> {
+                requireText(
+                        medicalDeclaration, "Medical declaration");
+                Objects.requireNonNull(
+                        preExistingConditionDeclared,
+                        "Pre-existing-condition declaration");
+
+                rejectPresent(vehicleRegistrationNumber,
+                        "Vehicle registration number");
+                rejectPresent(vehicleValue, "Vehicle value");
+                rejectPresent(destinationCountry,
+                        "Destination country");
+            }
+
+            case TRAVEL -> {
+                requireText(destinationCountry, "Destination country");
+
+                rejectPresent(vehicleRegistrationNumber,
+                        "Vehicle registration number");
+                rejectPresent(vehicleValue, "Vehicle value");
+                rejectPresent(medicalDeclaration,
+                        "Medical declaration");
+                rejectPresent(preExistingConditionDeclared,
+                        "Pre-existing-condition declaration");
+            }
+        }
+    }
+
+    private static void requireText(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(
+                    fieldName + " is required");
+        }
+    }
+
+    private static void rejectPresent(Object value, String fieldName) {
+        if (value != null) {
+            throw new IllegalArgumentException(
+                    fieldName + " is not applicable to this policy type");
+        }
+    }
+}
+
+
+
+
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+public class InsuranceDemo {
+
+    public static void main(String[] args) {
+
+        InsurancePolicy motorPolicy = InsurancePolicy.builder(
+                        "CUST-101",
+                        "POL-1001",
+                        "Rahul Sharma",
+                        LocalDate.of(2026, 11, 1),
+                        PolicyType.MOTOR
+                )
+                // Optional fields
+                .nomineeName("Priya Sharma")
+                .nomineeRelationship("Spouse")
+                .discountPercentage(new BigDecimal("10"))
+                .paymentFrequency(PaymentFrequency.ANNUALLY)
+                .autoRenewal(true)
+                .paymentMethod(PaymentMethod.UPI)
+
+                // Motor-specific fields
+                .vehicleRegistrationNumber("MH12AB1234")
+                .vehicleValue(new BigDecimal("850000"))
+
+                .build();
+
+        System.out.println(motorPolicy);
+        System.out.println(motorPolicy.customerId());
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=======
