@@ -438,6 +438,19 @@ Any number with complex conditional rules	Consider Builder + validation	        
 
 
 
+I would not use a rigid parameter-count threshold to decide whether to apply the Builder Pattern.
+
+As a practical heuristic, I start considering it around six or more parameters, 
+especially when several are optional or have similar types 
+that make positional arguments error-prone. 
+
+The stronger justification is whether the Builder improves readability, 
+supports safe construction, and centralizes validation without introducing unnecessary abstraction. 
+
+For simple immutable data carriers, 
+a Java record with a canonical constructor may be sufficient; 
+
+for complex domain objects, I would consider a Builder combined with invariant validation.
 
 ====================================================================================================================================
 
