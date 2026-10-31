@@ -2151,7 +2151,7 @@ Why not O(n)?
            
            The number of valid parenthesis strings is the n-th Catalan number:
            
-               C_n = \frac{1}{n+1}\binom{2n}{n} 
+               C_n = frac{1}{n+1}\binom{2n}{n} 
            
            So already the number of answers grows exponentially.
 
@@ -2491,7 +2491,8 @@ Now let's test your understanding
 2. Your backtracking statement is correct in principle
 
             You said:            
-                   "after going into one branch, and completing it, the undo will happen for that choice till it returns to openUsed == 2 and closeUsed == 2"
+                   "after going into one branch, and completing it, the undo will happen for that choice 
+till it returns to openUsed == 2 and closeUsed == 2"
             
             Exactly. 👍
             
@@ -2685,14 +2686,10 @@ Backtracking vs. Pruning
 ============================================================================================================================================
 One more important insight
 
-          For n = 3, there are theoretically:  2^6 = 64
-          
-          ways to place 6 characters if every position could independently be ( or ).
-          
-          But our constraints eliminate huge numbers of invalid possibilities.
-          
-          We only explore sequences that can potentially become valid.
-          
+          For n = 3, there are theoretically:  2^6 = 64          
+          ways to place 6 characters if every position could independently be ( or ).          
+          But our constraints eliminate huge numbers of invalid possibilities.          
+          We only explore sequences that can potentially become valid.          
           And the final number of valid answers is:  5
                          ((()))
                          (()())
