@@ -948,7 +948,7 @@ So:
 15. How do we build the palindrome DP?
 
                 The recurrence is:                
-                        palindrome[i][j] = (s[i] == s[j]) \land (j-i \le 2 \text{ or } palindrome[i+1][j-1])
+                        palindrome[i][j] = (s[i] == s[j]) and (j-i < 2 or  palindrome[i+1][j-1])
                 
                 Why?                
                         A string is a palindrome when:                
